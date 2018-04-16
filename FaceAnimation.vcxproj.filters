@@ -1,0 +1,106 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="ceres">
+      <UniqueIdentifier>{6ef0ca1b-b169-4440-966a-dc981b7e0776}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Eigen">
+      <UniqueIdentifier>{be3a0ee6-228f-4984-9065-44fcbf72f96e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mlibutil">
+      <UniqueIdentifier>{9bae12e5-7a08-4e72-8db4-6a3587d82a30}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="reader">
+      <UniqueIdentifier>{39cc4a13-90f4-4f9a-91b9-3c5bf0dfbec2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dlib">
+      <UniqueIdentifier>{f04c636a-1dab-4137-a028-0f7335a3aeb2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{dfadf693-ac2a-4101-af01-40aa272ebc05}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cuda">
+      <UniqueIdentifier>{06f53880-02bf-443d-8638-83c5e5bcb282}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ceres_initialization.cpp">
+      <Filter>ceres</Filter>
+    </ClCompile>
+    <ClCompile Include="ceres_param.cpp">
+      <Filter>ceres</Filter>
+    </ClCompile>
+    <ClCompile Include="mlibutil\mlibutil.cpp">
+      <Filter>mlibutil</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="parameters.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\thirdparty2015\dlib\dlib\all\source.cpp">
+      <Filter>dlib</Filter>
+    </ClCompile>
+    <ClCompile Include="dem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ceres_initialization.h">
+      <Filter>ceres</Filter>
+    </ClInclude>
+    <ClInclude Include="ceres_param.h">
+      <Filter>ceres</Filter>
+    </ClInclude>
+    <ClInclude Include="eigen_binary_io.h">
+      <Filter>Eigen</Filter>
+    </ClInclude>
+    <ClInclude Include="mlibutil\mlibutil.h">
+      <Filter>mlibutil</Filter>
+    </ClInclude>
+    <ClInclude Include="image_reader.h">
+      <Filter>reader</Filter>
+    </ClInclude>
+    <ClInclude Include="image_reader_kinect.h">
+      <Filter>reader</Filter>
+    </ClInclude>
+    <ClInclude Include="model_reader.h">
+      <Filter>reader</Filter>
+    </ClInclude>
+    <ClInclude Include="parameters.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dlib_face_detector.h">
+      <Filter>dlib</Filter>
+    </ClInclude>
+    <ClInclude Include="cuda\cuda_helper_func.cuh">
+      <Filter>cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="dem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dlib_landmark_detector.h">
+      <Filter>dlib</Filter>
+    </ClInclude>
+    <ClInclude Include="dem_refine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="cuda\cuda_helper_func.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+  </ItemGroup>
+</Project>
