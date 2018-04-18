@@ -8,6 +8,7 @@
 #include "dlib_face_detector.h"
 #include "dlib_landmark_detector.h"
 #include "cuda/cuda_helper_func.cuh"
+#include "dem_refine.h"
 
 #include <Eigen/Core>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -72,7 +73,7 @@ extern CuDenseMatrix X_track_cu_;
 extern CuDenseMatrix Y_track_cu_;
 
 // refine
-//extern DemRefine dem_refine_;c
+//extern DemRefine dem_refine_;
 
 extern int frame_count_;
 extern cv::Mat dframe_;
@@ -112,47 +113,5 @@ void UpdateNormalCPU();
 void WriteNeutralFace();
 
 void WriteExpressionFace();
-
-class DemRefine
-{
-public:
-	DemRefine();
-
-	void operator()();
-	// call outside
-	void GetY(CuDenseMatrix &dm, cudaStream_t &stream);
-	// call inside
-	void UpdateY(MatrixXd &result);
-	// call inside
-	void GetX(cudaStream_t &stream);
-	// call outside
-	void UpdateX(MatrixXd &x, CuSparseMatrix A_in, CuDenseMatrix C_in, cudaStream_t &stream);
-
-public:
-	double S_re_;
-	double S_total_re_;
-	double *p_X_eg_;
-	double *p_Y_eg_;
-	Map<MatrixXd> X_eg_;
-	Map<MatrixXd> Y_eg_;
-	CuDenseMatrix X_re_;
-	CuDenseMatrix Y_re_;
-	// in
-	bool updated;
-	std::mutex x_mtx_;
-	MatrixXd x_in_;
-	CuSparseMatrix A_in_;
-	CuDenseMatrix C_in_;
-	// out
-	std::mutex y_mtx_;
-	MatrixXd y_coeff_re_;
-	// run time variable
-	MatrixXd x_coeff_re_;
-	CuSparseMatrix A_re_;
-	CuDenseMatrix C_re_;
-	CuDenseMatrix A_hat_cu_;
-	CuDenseMatrix C_hat_cu_;
-};
-
 
 #endif

@@ -131,9 +131,14 @@ void DEM()
 	//system("pause");
 	// create thread for face detect and refine
 	// then detach
+
 	DlibFaceDetector fd(landmark_detector_);
-	std::thread tt(fd);
-	tt.detach();
+	std::thread tt1(fd);
+	tt1.detach();
+
+	//dem_refine_.SetPtr(handle, shandle, streams_cu_[refine_default_stream], &M_cu_, &P_cu_, &delta_B1_cu_, &delta_B2_cu_);
+	//std::thread tt2(dem_refine_);
+	//tt2.detach();
 }
 
 void SolvePnP()
@@ -460,7 +465,7 @@ void Track()
 		Xs[i] = X.col(i).dot(X.col(i));
 	}
 
-	double cost = DBL_MAX;
+	double cost = -1;
 	for (int step = 0; step < 10; step++) {
 #pragma omp parallel for
 		for (int i = 0; i < exp_size; i++) {
@@ -488,7 +493,7 @@ void Track()
 			res.block(0, 0, 6 * face_landmark.size(), 1).norm(),
 			res.block(6 * face_landmark.size(), 0, exp_size, 1).norm(),
 			new_cost);
-		if ((cost - new_cost) > 0.00001 * cost) {
+		if ((cost - new_cost) > 0.00001 * cost || cost < 0) {
 			cost = new_cost;
 			Beta = Beta_result;
 		}
@@ -629,140 +634,4 @@ void WriteExpressionFace()
 	UpdateMeshVertex(tmesh, mesh_);
 
 	ml::MeshIOd::saveToOBJ(Test_Output_Dir + str, mesh_);
-}
-
-DemRefine::DemRefine()
-	:S_re_(0), S_total_re_(0),
-	X_eg_(NULL, 0, 0), Y_eg_(NULL, 0, 0),
-	updated(false)
-{
-
-	cudaMallocHost(&p_X_eg_, 6 * face_landmark.size() * pca_size * sizeof(double));
-	cudaMallocHost(&p_Y_eg_, 6 * face_landmark.size() * sizeof(double));
-	new (&X_eg_) Map<MatrixXd>(p_X_eg_, 6 * face_landmark.size(), pca_size);
-	new (&Y_eg_) Map<MatrixXd>(p_Y_eg_, 6 * face_landmark.size(), 1);
-	X_eg_.setZero();
-	Y_eg_.setZero();
-	X_re_.SetMatrix(6 * face_landmark.size(), pca_size, X_eg_.data());
-	Y_re_.SetMatrix(6 * face_landmark.size(), 1, Y_eg_.data());
-	// in
-	x_in_.resize(exp_size, 1);
-	C_in_.SetSize(6 * face_landmark.size(), 1);
-	// out
-	y_coeff_re_.resize(pca_size, 1);
-	// run time variable
-	x_coeff_re_.resize(exp_size, 1);
-	C_re_.SetSize(6 * face_landmark.size(), 1);
-	A_hat_cu_.SetSize(6 * face_landmark.size(), pca_size);
-	C_hat_cu_.SetSize(6 * face_landmark.size(), 1);
-}
-
-void DemRefine::operator()()
-{
-	while (true) {
-		while (!updated) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-			continue;
-		}
-		//
-		cublasSetStream(handle, streams_cu_[refine_default_stream]);
-		GetX(streams_cu_[refine_default_stream]);
-		// update A_hat C_hat
-		CuDenseMatrix tA(3 * vertex_size, pca_size);
-		CuDenseMatrix tC(3 * vertex_size, 1);
-		tA.SetZero(handle);
-		tC.SetZero(handle);
-		for (int i = 0; i < exp_size; i++) {
-
-		}
-		// update X_total Y_total
-		double gamma = 0.9;
-		double S_total_re_ = gamma * S_re_ + 1;
-		double al = 1.0 / S_total_re_;
-		double bet = gamma * S_re_ / S_total_re_;
-		cublasDgemm(handle,
-			CUBLAS_OP_T, CUBLAS_OP_N,
-			pca_size, pca_size, 6 * face_landmark.size(),
-			&al,
-			A_hat_cu_.d_Val, A_hat_cu_.rows,
-			A_hat_cu_.d_Val, A_hat_cu_.rows,
-			&bet,
-			X_re_.d_Val, X_re_.rows);
-		cublasDgemv(handle,
-			CUBLAS_OP_T,
-			6 * face_landmark.size(), pca_size,
-			&al,
-			A_hat_cu_.d_Val, A_hat_cu_.rows,
-			C_hat_cu_.d_Val, 1,
-			&bet,
-			Y_re_.d_Val, 1);
-		S_re_ = S_total_re_;
-		// read [X Y] --> CPU
-		X_re_.GetMatrix(pca_size, pca_size, X_eg_.data(), streams_cu_[refine_default_stream]);
-		Y_re_.GetMatrix(pca_size, 1, Y_eg_.data(), streams_cu_[refine_default_stream]);
-
-		// solve it
-		MatrixXd result1, result2;
-		result1 = result2 = y_coeff_eg_;
-
-		MatrixXd tmp = X_eg_;
-		MatrixXd D = tmp.diagonal().asDiagonal().toDenseMatrix();
-		MatrixXd L = tmp.triangularView<Eigen::StrictlyLower>().toDenseMatrix();
-		MatrixXd U = tmp.triangularView<Eigen::StrictlyUpper>().toDenseMatrix();
-
-		LLT<MatrixXd> llt;
-		llt.compute(D + U);
-		double cost = DBL_MAX;
-		for (int i = 0; i < 10; i++) {
-			result1 = llt.solve(Y_eg_ - L * result2);
-			double new_cost = (tmp * result1 - Y_eg_).norm();
-			if ((cost - new_cost) > 0.00001 * cost) {
-				result2 = result1;
-				cost = new_cost;
-			}
-			else
-				break;
-		}
-		std::cout << Map<RowVectorXd>(result2.data(), pca_size);
-		UpdateY(result2);
-	}
-}
-
-// call outside
-void DemRefine::GetY(CuDenseMatrix &dm, cudaStream_t &stream)
-{
-	y_mtx_.lock();
-	dm.SetData(y_coeff_re_.data());
-	cudaStreamSynchronize(stream);
-	y_mtx_.unlock();
-}
-
-// call inside
-void DemRefine::UpdateY(MatrixXd &result)
-{
-	y_mtx_.lock();
-	y_coeff_re_ = result;
-	y_mtx_.unlock();
-}
-
-// call inside
-void DemRefine::GetX(cudaStream_t &stream)
-{
-	x_mtx_.lock();
-	SM2SM(handle, A_in_, A_re_);
-	DM2DM(handle, C_in_, C_re_);
-	x_coeff_re_ = x_in_;
-	cudaStreamSynchronize(stream);
-	x_mtx_.unlock();
-}
-
-// call outside
-void DemRefine::UpdateX(MatrixXd &x, CuSparseMatrix A_in, CuDenseMatrix C_in, cudaStream_t &stream)
-{
-	x_mtx_.lock();
-	SM2SM(handle, A_in, A_in_);
-	DM2DM(handle, C_in, C_in_);
-	x_in_ = x;
-	cudaStreamSynchronize(stream);
-	x_mtx_.unlock();
 }

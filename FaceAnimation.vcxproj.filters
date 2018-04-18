@@ -53,6 +53,9 @@
     <ClCompile Include="dem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dem_refine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ceres_initialization.h">
@@ -90,6 +93,9 @@
     </ClInclude>
     <ClInclude Include="dlib_landmark_detector.h">
       <Filter>dlib</Filter>
+    </ClInclude>
+    <ClInclude Include="dem_refine.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

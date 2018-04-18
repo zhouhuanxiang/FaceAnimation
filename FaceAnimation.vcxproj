@@ -116,6 +116,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>ceresd.lib;libglogd.lib;opencv_world340d.lib;cudart.lib;cublas.lib;cusparse.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -167,6 +170,7 @@
     <ClCompile Include="ceres_initialization.cpp" />
     <ClCompile Include="ceres_param.cpp" />
     <ClCompile Include="dem.cpp" />
+    <ClCompile Include="dem_refine.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mlibutil\mlibutil.cpp" />
     <ClCompile Include="parameters.cpp" />
@@ -176,6 +180,7 @@
     <ClInclude Include="ceres_param.h" />
     <ClInclude Include="cuda\cuda_helper_func.cuh" />
     <ClInclude Include="dem.h" />
+    <ClInclude Include="dem_refine.h" />
     <ClInclude Include="dlib_landmark_detector.h" />
     <ClInclude Include="dlib_face_detector.h" />
     <ClInclude Include="eigen_binary_io.h" />
