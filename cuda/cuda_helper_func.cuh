@@ -25,18 +25,18 @@ public:
 		d_Val = NULL;
 	}
 
+	CuDenseMatrix(int rows, int cols)
+		:rows(rows), cols(cols)
+	{
+		cudaMalloc((void **)& d_Val, rows * cols * sizeof(double));
+	}
+
 	CuDenseMatrix(int rows, int cols, double *ptr)
 		:rows(rows), cols(cols)
 	{
 		cudaMalloc((void **)& d_Val, rows * cols * sizeof(double));
 		//cublasSetMatrix(rows, cols, sizeof(double), ptr, rows, d_Val, rows);
 		cudaMemcpy(d_Val, ptr, sizeof(double) * rows * cols, cudaMemcpyHostToDevice);
-	}
-
-	CuDenseMatrix(int rows, int cols)
-		:rows(rows), cols(cols)
-	{
-		cudaMalloc((void **)& d_Val, rows * cols * sizeof(double));
 	}
 
 	~CuDenseMatrix()
@@ -69,6 +69,20 @@ public:
 		cudaMemcpy(ptr, d_Val, sizeof(double) * r * c, cudaMemcpyDeviceToHost);
 	}
 
+	void SetZero(cublasHandle_t &handle)
+	{
+		double al = 0;
+		double bet = 0;
+		cublasDgeam(handle,
+			CUBLAS_OP_N, CUBLAS_OP_N,
+			rows, cols,
+			&al,
+			nullptr, 0,
+			&bet,
+			nullptr, 0,
+			d_Val, rows);
+	}
+
 public:
 	int rows;
 	int cols;
@@ -86,6 +100,12 @@ public:
 		d_csrRowPtr = NULL;
 		d_csrColInd = NULL;
 		d_csrVal = NULL;
+
+		cusparseStatus_t cudaStat;
+		cudaStat = cusparseCreateMatDescr(&descr);
+		assert(CUSPARSE_STATUS_SUCCESS == cudaStat);
+		cusparseSetMatType(descr, CUSPARSE_MATRIX_TYPE_GENERAL);
+		cusparseSetMatIndexBase(descr, CUSPARSE_INDEX_BASE_ZERO);
 	}
 
 	CuSparseMatrix(Eigen::SparseMatrix<double, Eigen::RowMajor> &sm)
@@ -113,19 +133,9 @@ public:
 		if (!sm.isCompressed())
 			sm.makeCompressed();
 
-		cusparseStatus_t cudaStat;
-		descr = NULL;
-		cudaStat = cusparseCreateMatDescr(&descr);
-		assert(CUSPARSE_STATUS_SUCCESS == cudaStat);
-		cusparseSetMatType(descr, CUSPARSE_MATRIX_TYPE_GENERAL);
-		cusparseSetMatIndexBase(descr, CUSPARSE_INDEX_BASE_ZERO);
-
 		rows = sm.outerSize();
 		cols = sm.innerSize();
 		entries = sm.nonZeros();
-		d_csrRowPtr = NULL;
-		d_csrColInd = NULL;
-		d_csrVal = NULL;
 		cudaMalloc((void**)&d_csrRowPtr, sizeof(int) * (rows + 1));// cols or rows ?
 		cudaMalloc((void**)&d_csrColInd, sizeof(int) * entries);
 		cudaMalloc((void**)&d_csrVal, sizeof(double) * entries);
@@ -209,4 +219,9 @@ void SM2DM(cusparseHandle_t &handle,
 void DM2DM(cublasHandle_t &handle,
 	CuDenseMatrix &dm1,
 	CuDenseMatrix &dm2);
+
+void SM2SM(cublasHandle_t &handle,
+	CuSparseMatrix &sm1,
+	CuSparseMatrix &sm2);
+
 #endif

@@ -86,3 +86,19 @@ void DM2DM(cublasHandle_t &handle, CuDenseMatrix &dm1, CuDenseMatrix &dm2)
 {
 	cudaMemcpy(dm2.d_Val, dm1.d_Val, sizeof(double) * dm1.rows * dm1.cols, cudaMemcpyDeviceToDevice);
 }
+
+void SM2SM(cublasHandle_t &handle, CuSparseMatrix &sm1, CuSparseMatrix &result)
+{
+	if (!result.entries) {
+		result.rows = sm1.rows;
+		result.cols = sm1.cols;
+		result.entries = sm1.entries;
+		cudaMalloc((void**)&result.d_csrRowPtr, sizeof(int) * (result.rows + 1));// cols or rows ?
+		cudaMalloc((void**)&result.d_csrColInd, sizeof(int) * result.entries);
+		cudaMalloc((void**)&result.d_csrVal, sizeof(double) * result.entries);
+	}
+
+	cudaMemcpy(result.d_csrRowPtr, sm1.d_csrRowPtr, sizeof(int) * (result.rows + 1), cudaMemcpyDeviceToDevice);// cols or rows ?
+	cudaMemcpy(result.d_csrColInd, sm1.d_csrColInd, sizeof(int) * result.entries, cudaMemcpyDeviceToDevice);
+	cudaMemcpy(result.d_csrVal, sm1.d_csrVal, sizeof(double) * result.entries, cudaMemcpyDeviceToDevice);
+}

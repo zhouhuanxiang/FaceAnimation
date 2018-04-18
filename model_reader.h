@@ -19,8 +19,8 @@ public:
 
 	ModelReader(CuDenseMatrix &M_cu_, MatrixXd &M_eg_,
 		CuDenseMatrix &P_cu_, MatrixXd &P_eg_,
-		CuDenseMatrix &delta_B1_cu_, MatrixXd &delta_B1_eg_,
-		CuDenseMatrix &delta_B2_cu_, MatrixXd &delta_B2_eg_)
+		CuDenseMatrix &delta_B1_cu_, /*MatrixXd &delta_B1_eg_,*/
+		CuDenseMatrix &delta_B2_cu_/*, MatrixXd &delta_B2_eg_*/)
 	{
 		MatrixXd pca;
 		read_binary(Data_Input_Dir + "pca50", pca);
@@ -33,7 +33,7 @@ public:
 		M_cu_.SetMatrix(M_eg_.rows(), M_eg_.cols(), M_eg_.data());
 		P_cu_.SetMatrix(P_eg_.rows(), P_eg_.cols(), P_eg_.data());
 
-		//MatrixXd delta_B1_eg_, delta_B2_eg_;
+		MatrixXd delta_B1_eg_, delta_B2_eg_;
 		read_binary(Data_Input_Dir + "delta_B1_min", delta_B1_eg_);
 		read_binary(Data_Input_Dir + "delta_B2_min", delta_B2_eg_);
 		delta_B1_cu_.SetMatrix(delta_B1_eg_.rows(), delta_B1_eg_.cols(), delta_B1_eg_.data());

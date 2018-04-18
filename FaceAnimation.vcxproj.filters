@@ -91,9 +91,6 @@
     <ClInclude Include="dlib_landmark_detector.h">
       <Filter>dlib</Filter>
     </ClInclude>
-    <ClInclude Include="dem_refine.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

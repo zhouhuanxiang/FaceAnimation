@@ -176,7 +176,6 @@
     <ClInclude Include="ceres_param.h" />
     <ClInclude Include="cuda\cuda_helper_func.cuh" />
     <ClInclude Include="dem.h" />
-    <ClInclude Include="dem_refine.h" />
     <ClInclude Include="dlib_landmark_detector.h" />
     <ClInclude Include="dlib_face_detector.h" />
     <ClInclude Include="eigen_binary_io.h" />

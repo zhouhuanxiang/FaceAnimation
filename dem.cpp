@@ -10,8 +10,8 @@ CuDenseMatrix inter_result4_;
 
 MatrixXd M_eg_;
 MatrixXd P_eg_;
-MatrixXd delta_B1_eg_;
-MatrixXd delta_B2_eg_;
+//MatrixXd delta_B1_eg_;
+//MatrixXd delta_B2_eg_;
 CuDenseMatrix M_cu_;
 CuDenseMatrix P_cu_;
 CuDenseMatrix delta_B_cu_;
@@ -52,8 +52,7 @@ Map<MatrixXd> X_refine_eg_(NULL, 0, 0);
 Map<MatrixXd> Y_refine_eg_(NULL, 0, 0);
 
 // refine
-std::mutex x_coeff_mtx_;
-std::mutex matrix_mtx_;
+//DemRefine dem_refine_;
 
 int frame_count_;
 cv::Mat dframe_;
@@ -79,8 +78,8 @@ void DEM()
 	//
 	ModelReader mr(M_cu_, M_eg_,
 		P_cu_, P_eg_,
-		delta_B1_cu_, delta_B1_eg_,
-		delta_B2_cu_, delta_B2_eg_);
+		delta_B1_cu_, /*delta_B1_eg_,*/
+		delta_B2_cu_/*, delta_B2_eg_*/);
 	delta_B_cu_.SetSize(3 * vertex_size, exp_size);
 	//
 	rotation_cv_ = cv::Mat(3, 1, CV_64FC1);
@@ -117,7 +116,6 @@ void DEM()
 	X_track_cu_.SetSize(6 * face_landmark.size(), exp_size);
 	Y_track_cu_.SetSize(6 * face_landmark.size(), 1);
 
-
 	//
 	//int eindex = 2;
 	//int nindex = 1;
@@ -143,7 +141,7 @@ void SolvePnP()
 	std::vector<cv::Point3d> pts3;
 	std::vector<cv::Point2d> pts2;
 	for (int i = 0; i < face_landmark.size(); i++) {
-		if (i < 17 || i >= 48)
+		if (i < 17 || i >= 60)
 			continue;
 		Vector3d pt3 = expression_eg_.block(3 * face_landmark[i], 0, 3, 1);
 		pts3.push_back(cv::Point3d(pt3(0), pt3(1), pt3(2)));
@@ -182,15 +180,61 @@ void SolvePnP()
 	LOG(INFO) << "translation:" << Map<RowVectorXd>(translation_eg_.data(), 3);
 }
 
+void SVD()
+{
+	int count = 0;
+	std::vector<Vector3d> ps1, ps2;
+
+	for (int i = 0; i < face_landmark.size(); i++) {
+		if (i < 17 || i >= 60)
+			continue;
+		Vector2d p2_landmark = landmark_detector_.pts_[i];
+		Vector3d p3_landmark = Point2d_2_Point3d(p2_landmark, dframe_.at<unsigned short>(p2_landmark(1), p2_landmark(0)));
+		int index = face_landmark[i];
+		Vector3d p3_model = expression_eg_.block(3 * index, 0, 3, 1);
+		Vector3d p3_model_now = rotation_eg_ * p3_model + translation_eg_;
+		if ((p3_landmark - p3_model_now).norm() > 20)
+			continue;
+		ps1.push_back(p3_landmark);
+		ps2.push_back(p3_model);
+		count++;
+	}
+
+	MatrixXd pts1(3, count);
+	MatrixXd pts2(3, count);
+	for (int i = 0; i < count; i++) {
+		pts1.col(i) = ps1[i];
+		pts2.col(i) = ps2[i];
+	}
+	Vector3d centroid1 = pts1.rowwise().mean();
+	Vector3d centroid2 = pts2.rowwise().mean();
+	pts1.colwise() -= centroid1;
+	pts2.colwise() -= centroid2;
+
+
+	JacobiSVD<MatrixXd> svd(pts2 * pts1.transpose(), ComputeThinU | ComputeThinV);
+	rotation_eg_ = svd.matrixV() * svd.matrixU().transpose();
+	if (rotation_eg_.determinant() < 0) {
+		rotation_eg_.col(2) *= -1;
+	}
+	translation_eg_ = centroid1 - rotation_eg_ * centroid2;
+
+	//LOG(INFO) << "rotation:" << rotation_eg_;
+	LOG(INFO) << "translation:" << Map<RowVectorXd>(translation_eg_.data(), 3);
+	std::cout << Map<RowVectorXd>(translation_eg_.data(), 3) << "@" << count << "\n";
+	//std::cout << rotation_eg_ << "\n@";
+}
+
 void GetFrame(bool init)
 {
 	static ImageReaderKinect image_reader(Kinect_Data_Dir);
 	image_reader.GetFrame(frame_count_, cframe_, dframe_);
-	LOG(INFO) << "gauss blur";
+	LOG(INFO) << "gauss blur";	
 	cv::GaussianBlur(dframe_, dframe_, cv::Size(3, 3), 0);
 	landmark_detector_.Detect(cframe_, frame_count_);
 	if (!init)
-		SolvePnP();
+		//SolvePnP();
+		SVD();
 
 	/*ml::MeshDatad tmp;
 	tmp.m_Vertices.resize(face_detector_.width * face_detector_.height);
@@ -292,9 +336,9 @@ void GenerateIcpMatrix()
 	A.setZero();
 	C.setZero();
 
-	double alpha1 = 1;
-	double alpha2 = 2;
-	double alpha3 = 0;
+	double alpha1 = 4;
+	double alpha2 = 0;
+	double alpha3 = 1;
 	for (int lm = 0; lm < face_landmark.size(); lm++) {
 		if (lm < 17 /*|| lm >= 60*/)
 			continue;
@@ -373,22 +417,17 @@ void GenerateIcpMatrix()
 	//}
 	//std::cout << "\n";
 
-	matrix_mtx_.lock();
-	cublasSetStream(handle, streams_cu_[track_update_stream]);
 	if (A_track_cu_.entries)
 		A_track_cu_.SetData(A);
 	else
 		A_track_cu_.SetMatrix(A);
 	C_track_cu_.SetData(C.data());
-	cudaStreamSynchronize(streams_cu_[track_update_stream]);
-	matrix_mtx_.unlock(); 
-	cublasSetStream(handle, streams_cu_[default_stream]);
 }
 
 void Track()
 {
-	const static double lambda1 = 200.0;
-	const static double lambda2 = 300.0;
+	const static double lambda1 = 150.0;
+	const static double lambda2 = 80.0;
 	//
 	xxx_coeff_eg_ = xx_coeff_eg_;
 	xx_coeff_eg_ = x_coeff_eg_;
@@ -413,11 +452,8 @@ void Track()
 		Y(6 * face_landmark.size() + i, 0) = lambda1 * (2 * xx_coeff_eg_(i) - xxx_coeff_eg_(i));
 	}
 	// Beta
-	VectorXd Beta(exp_size);
-	for (int i = 0; i < exp_size; i++) {
-		Beta(i) = x_coeff_eg_(i);
-	}
-	VectorXd Beta_result = Beta;
+	VectorXd Beta, Beta_result;
+	Beta = Beta_result = x_coeff_eg_;
 	// (X_j) * (X_j)
 	std::vector<double> Xs(exp_size);
 	for (int i = 0; i < exp_size; i++) {
@@ -452,19 +488,17 @@ void Track()
 			res.block(0, 0, 6 * face_landmark.size(), 1).norm(),
 			res.block(6 * face_landmark.size(), 0, exp_size, 1).norm(),
 			new_cost);
-		Beta = Beta_result;
-		if ((cost - new_cost) > 0.0001 * cost) {
+		if ((cost - new_cost) > 0.00001 * cost) {
 			cost = new_cost;
+			Beta = Beta_result;
 		}
 		else/* if(new_cost <= cost)*/ {
 			break;
 		}
 	}
 	//
-	for (int i = 0; i < exp_size; i++) {
-		x_coeff_eg_(i) = Beta(i);
-	}
-	LOG(INFO) << "X: " << Map<RowVectorXd>(Beta.data(), exp_size);
+	x_coeff_eg_ = Beta;
+	LOG(INFO) << "X: " << Map<RowVectorXd>(x_coeff_eg_.data(), exp_size);
 	// update
 	x_coeff_cu_.SetData(x_coeff_eg_.data());
 	UpdateDeltaBlendshapeGPU();
@@ -480,7 +514,7 @@ void Track()
 void UpdateNeutralFaceGPU()
 {
 	LOG(INFO) << "neutral face gpu";
-	DMmulDV(handle, P_cu_, y_coeff_cu_, neutral_cu_);
+	DMmulDV(handle, P_cu_, y_coeff_cu_, neutral_cu_); // update y_coeff_cu_ ?
 	DVaddDV(handle, M_cu_, neutral_cu_);
 }
 
@@ -509,6 +543,9 @@ void UpdateDeltaBlendshapeGPU()
 	//	inter_result3_.d_Val, 3 * vertex_size, 3 * vertex_size,
 	//	exp_size);
 	//cublasSetMathMode(handle, CUBLAS_DEFAULT_MATH);
+
+	// read y_coeff_cu_ first
+
 	cudaStreamSynchronize(streams_cu_[default_stream]);
 	for (int i = 0; i < exp_size; i++) {
 		cublasSetStream(handle, streams_cu_[track_stream_begin + i]);
@@ -592,4 +629,140 @@ void WriteExpressionFace()
 	UpdateMeshVertex(tmesh, mesh_);
 
 	ml::MeshIOd::saveToOBJ(Test_Output_Dir + str, mesh_);
+}
+
+DemRefine::DemRefine()
+	:S_re_(0), S_total_re_(0),
+	X_eg_(NULL, 0, 0), Y_eg_(NULL, 0, 0),
+	updated(false)
+{
+
+	cudaMallocHost(&p_X_eg_, 6 * face_landmark.size() * pca_size * sizeof(double));
+	cudaMallocHost(&p_Y_eg_, 6 * face_landmark.size() * sizeof(double));
+	new (&X_eg_) Map<MatrixXd>(p_X_eg_, 6 * face_landmark.size(), pca_size);
+	new (&Y_eg_) Map<MatrixXd>(p_Y_eg_, 6 * face_landmark.size(), 1);
+	X_eg_.setZero();
+	Y_eg_.setZero();
+	X_re_.SetMatrix(6 * face_landmark.size(), pca_size, X_eg_.data());
+	Y_re_.SetMatrix(6 * face_landmark.size(), 1, Y_eg_.data());
+	// in
+	x_in_.resize(exp_size, 1);
+	C_in_.SetSize(6 * face_landmark.size(), 1);
+	// out
+	y_coeff_re_.resize(pca_size, 1);
+	// run time variable
+	x_coeff_re_.resize(exp_size, 1);
+	C_re_.SetSize(6 * face_landmark.size(), 1);
+	A_hat_cu_.SetSize(6 * face_landmark.size(), pca_size);
+	C_hat_cu_.SetSize(6 * face_landmark.size(), 1);
+}
+
+void DemRefine::operator()()
+{
+	while (true) {
+		while (!updated) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			continue;
+		}
+		//
+		cublasSetStream(handle, streams_cu_[refine_default_stream]);
+		GetX(streams_cu_[refine_default_stream]);
+		// update A_hat C_hat
+		CuDenseMatrix tA(3 * vertex_size, pca_size);
+		CuDenseMatrix tC(3 * vertex_size, 1);
+		tA.SetZero(handle);
+		tC.SetZero(handle);
+		for (int i = 0; i < exp_size; i++) {
+
+		}
+		// update X_total Y_total
+		double gamma = 0.9;
+		double S_total_re_ = gamma * S_re_ + 1;
+		double al = 1.0 / S_total_re_;
+		double bet = gamma * S_re_ / S_total_re_;
+		cublasDgemm(handle,
+			CUBLAS_OP_T, CUBLAS_OP_N,
+			pca_size, pca_size, 6 * face_landmark.size(),
+			&al,
+			A_hat_cu_.d_Val, A_hat_cu_.rows,
+			A_hat_cu_.d_Val, A_hat_cu_.rows,
+			&bet,
+			X_re_.d_Val, X_re_.rows);
+		cublasDgemv(handle,
+			CUBLAS_OP_T,
+			6 * face_landmark.size(), pca_size,
+			&al,
+			A_hat_cu_.d_Val, A_hat_cu_.rows,
+			C_hat_cu_.d_Val, 1,
+			&bet,
+			Y_re_.d_Val, 1);
+		S_re_ = S_total_re_;
+		// read [X Y] --> CPU
+		X_re_.GetMatrix(pca_size, pca_size, X_eg_.data(), streams_cu_[refine_default_stream]);
+		Y_re_.GetMatrix(pca_size, 1, Y_eg_.data(), streams_cu_[refine_default_stream]);
+
+		// solve it
+		MatrixXd result1, result2;
+		result1 = result2 = y_coeff_eg_;
+
+		MatrixXd tmp = X_eg_;
+		MatrixXd D = tmp.diagonal().asDiagonal().toDenseMatrix();
+		MatrixXd L = tmp.triangularView<Eigen::StrictlyLower>().toDenseMatrix();
+		MatrixXd U = tmp.triangularView<Eigen::StrictlyUpper>().toDenseMatrix();
+
+		LLT<MatrixXd> llt;
+		llt.compute(D + U);
+		double cost = DBL_MAX;
+		for (int i = 0; i < 10; i++) {
+			result1 = llt.solve(Y_eg_ - L * result2);
+			double new_cost = (tmp * result1 - Y_eg_).norm();
+			if ((cost - new_cost) > 0.00001 * cost) {
+				result2 = result1;
+				cost = new_cost;
+			}
+			else
+				break;
+		}
+		std::cout << Map<RowVectorXd>(result2.data(), pca_size);
+		UpdateY(result2);
+	}
+}
+
+// call outside
+void DemRefine::GetY(CuDenseMatrix &dm, cudaStream_t &stream)
+{
+	y_mtx_.lock();
+	dm.SetData(y_coeff_re_.data());
+	cudaStreamSynchronize(stream);
+	y_mtx_.unlock();
+}
+
+// call inside
+void DemRefine::UpdateY(MatrixXd &result)
+{
+	y_mtx_.lock();
+	y_coeff_re_ = result;
+	y_mtx_.unlock();
+}
+
+// call inside
+void DemRefine::GetX(cudaStream_t &stream)
+{
+	x_mtx_.lock();
+	SM2SM(handle, A_in_, A_re_);
+	DM2DM(handle, C_in_, C_re_);
+	x_coeff_re_ = x_in_;
+	cudaStreamSynchronize(stream);
+	x_mtx_.unlock();
+}
+
+// call outside
+void DemRefine::UpdateX(MatrixXd &x, CuSparseMatrix A_in, CuDenseMatrix C_in, cudaStream_t &stream)
+{
+	x_mtx_.lock();
+	SM2SM(handle, A_in, A_in_);
+	DM2DM(handle, C_in, C_in_);
+	x_in_ = x;
+	cudaStreamSynchronize(stream);
+	x_mtx_.unlock();
 }
