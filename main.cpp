@@ -25,28 +25,26 @@ int main(int argc, char** argv)
 	//system("pause");
 
 	DEM();
-	for (frame_count_ = 40; frame_count_ <= 43; frame_count_++) {
+	for (frame_count_ = 10; frame_count_ <= 13; frame_count_++) {
 		LOG(INFO) << "\n\n";
 		LOG(INFO) << "frame No." << frame_count_;
-		GetFrame(true);
+		UpdateFrame(true);
 		Initialize();
 	}
 
 	{
-		y_coeff_cu_.SetData(y_coeff_eg_.data());
-		x_coeff_cu_.SetData(x_coeff_eg_.data());
-		UpdateNeutralFaceGPU();
-		UpdateDeltaBlendshapeGPU();
-		UpdateExpressionFaceGPU();
-		// output
+		UpdateNeutralFaceCPU();
+		WriteNeutralFace();
+		UpdateDeltaBlendshapeCPU();
 		UpdateExpressionFaceCPU();
 		WriteExpressionFace();
 	}
 
-	for (frame_count_ = 44; frame_count_ <= 380; frame_count_++) {
+	for (frame_count_ = 14; frame_count_ <= 10000; frame_count_++) {
 		LOG(INFO) << "\n\n";
 		LOG(INFO) << "frame No." << frame_count_;
-		GetFrame(false);
+		std::cout << "# " << frame_count_ << "\n";
+		UpdateFrame(false);
 		Track();
 		//Refine();
 	}

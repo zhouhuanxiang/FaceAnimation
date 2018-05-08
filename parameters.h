@@ -12,6 +12,10 @@ const int vertex_size = 3641;
 const int face_size = 7028;
 const int pca_size = 50;
 const int exp_size = 33 - 5;
+const int face_landmark_size = 68;
+const int landmark_residual_pair = 68;
+const int dense_residual_pair = 365;
+const int total_residual_size = 68 * 6 + 365 * 3;
 
 // GPU
 const int stream_size = 100;

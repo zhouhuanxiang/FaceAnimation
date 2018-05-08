@@ -67,6 +67,8 @@ public:
 				if (i < 17)	continue;
 				cv::circle(cframe, cv::Point(pts_[i](0), pts_[i](1)), 2, cv::Scalar(0, 0, 255, 255));
 			}
+			cv::imshow("debug", cframe);
+			cv::waitKey(0);
 		}
 
 		return true;

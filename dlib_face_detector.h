@@ -58,7 +58,6 @@ public:
 			}
 			else {
 				std::cout << "totally " << faces.size() << " faces detected!\n";
-				system("pause");
 			}
 		}
 	}

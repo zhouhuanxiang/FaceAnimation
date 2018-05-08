@@ -83,8 +83,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)../../thirdparty2015/OpenCV/include;$(SolutionDir)../../thirdparty2015/mLib/include;$(SolutionDir)../../thirdparty2015/glog/include;$(SolutionDir)../../thirdparty2015/ceres-solver/include;$(SolutionDir)../../thirdparty2015/Eigen;$(SolutionDir)../../thirdparty2015/dlib;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)../../thirdparty2015/OpenCV/lib;$(SolutionDir)../../thirdparty2015/mLib/lib;$(SolutionDir)../../thirdparty2015/glog/lib;$(SolutionDir)../../thirdparty2015/ceres-solver/lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)../../thirdparty2015/OpenCV/include;$(SolutionDir)../../thirdparty2015/mLib/include;$(SolutionDir)../../thirdparty2015/glog/include;$(SolutionDir)../../thirdparty2015/ceres-solver/include;$(SolutionDir)../../thirdparty2015/Eigen;$(SolutionDir)../../thirdparty2015/dlib;$(SolutionDir)../../thirdparty2015/clblast/include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)../../thirdparty2015/OpenCV/lib;$(SolutionDir)../../thirdparty2015/mLib/lib;$(SolutionDir)../../thirdparty2015/glog/lib;$(SolutionDir)../../thirdparty2015/ceres-solver/lib;$(SolutionDir)../../thirdparty2015/ViennaCL/lib;$(SolutionDir)../../thirdparty2015/clblast/release;$(LibraryPath)</LibraryPath>
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -146,7 +146,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;DLIB_PNG_SUPPORT;DLIB_JPEG_SUPPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;DLIB_PNG_SUPPORT;DLIB_JPEG_SUPPORT;VIENNACL_WITH_EIGEN;VIENNACL_WITH_OPENCL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <OpenMPSupport>true</OpenMPSupport>
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -157,7 +157,7 @@
       <EnableCOMDATFolding>false</EnableCOMDATFolding>
       <OptimizeReferences>false</OptimizeReferences>
       <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
-      <AdditionalDependencies>ceres.lib;libglog.lib;opencv_world340.lib;cudart.lib;cublas.lib;cusparse.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ceres.lib;libglog.lib;opencv_world340.lib;OpenCL.lib;clblast.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       <AdditionalOptions>/time %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -170,7 +170,6 @@
     <ClCompile Include="ceres_initialization.cpp" />
     <ClCompile Include="ceres_param.cpp" />
     <ClCompile Include="dem.cpp" />
-    <ClCompile Include="dem_refine.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mlibutil\mlibutil.cpp" />
     <ClCompile Include="parameters.cpp" />
@@ -178,9 +177,7 @@
   <ItemGroup>
     <ClInclude Include="ceres_initialization.h" />
     <ClInclude Include="ceres_param.h" />
-    <ClInclude Include="cuda\cuda_helper_func.cuh" />
     <ClInclude Include="dem.h" />
-    <ClInclude Include="dem_refine.h" />
     <ClInclude Include="dlib_landmark_detector.h" />
     <ClInclude Include="dlib_face_detector.h" />
     <ClInclude Include="eigen_binary_io.h" />
@@ -192,9 +189,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <CudaCompile Include="cuda\cuda_helper_func.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

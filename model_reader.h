@@ -3,7 +3,6 @@
 
 #include "parameters.h"
 #include "eigen_binary_io.h"
-#include "cuda/cuda_helper_func.cuh"
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
@@ -17,27 +16,23 @@ class ModelReader
 public:
 	ModelReader(){}
 
-	ModelReader(CuDenseMatrix &M_cu_, MatrixXd &M_eg_,
-		CuDenseMatrix &P_cu_, MatrixXd &P_eg_,
-		CuDenseMatrix &delta_B1_cu_, /*MatrixXd &delta_B1_eg_,*/
-		CuDenseMatrix &delta_B2_cu_/*, MatrixXd &delta_B2_eg_*/)
+	ModelReader(MatrixXd &M_eg_, MatrixXd &P_eg_, MatrixXd &delta_B1_eg_, MatrixXd &delta_B2_eg_)
 	{
 		MatrixXd pca;
 		read_binary(Data_Input_Dir + "pca50", pca);
 
 		M_eg_ = pca.col(0);
 		P_eg_ = pca.block(0, 1, 3 * vertex_size, pca_size);
+#pragma omp parallel for
 		for (int i = 0; i < pca_size; i++) {
 			P_eg_.col(i) -= M_eg_;
 		}
-		M_cu_.SetMatrix(M_eg_.rows(), M_eg_.cols(), M_eg_.data());
-		P_cu_.SetMatrix(P_eg_.rows(), P_eg_.cols(), P_eg_.data());
 
-		MatrixXd delta_B1_eg_, delta_B2_eg_;
 		read_binary(Data_Input_Dir + "delta_B1_min", delta_B1_eg_);
 		read_binary(Data_Input_Dir + "delta_B2_min", delta_B2_eg_);
-		delta_B1_cu_.SetMatrix(delta_B1_eg_.rows(), delta_B1_eg_.cols(), delta_B1_eg_.data());
-		delta_B2_cu_.SetMatrix(delta_B2_eg_.rows(), delta_B2_eg_.cols(), delta_B2_eg_.data());
+
+		//std::cout << delta_B2_eg_.rows() << " " << delta_B1_eg_.cols() << "\n";
+		//std::cout << "\n";
 	}
 
 	void ConcatMatrix()

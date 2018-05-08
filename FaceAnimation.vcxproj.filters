@@ -27,9 +27,6 @@
     <Filter Include="Header Files">
       <UniqueIdentifier>{dfadf693-ac2a-4101-af01-40aa272ebc05}</UniqueIdentifier>
     </Filter>
-    <Filter Include="cuda">
-      <UniqueIdentifier>{06f53880-02bf-443d-8638-83c5e5bcb282}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ceres_initialization.cpp">
@@ -51,9 +48,6 @@
       <Filter>dlib</Filter>
     </ClCompile>
     <ClCompile Include="dem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="dem_refine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -85,25 +79,14 @@
     <ClInclude Include="dlib_face_detector.h">
       <Filter>dlib</Filter>
     </ClInclude>
-    <ClInclude Include="cuda\cuda_helper_func.cuh">
-      <Filter>cuda</Filter>
-    </ClInclude>
-    <ClInclude Include="dem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="dlib_landmark_detector.h">
       <Filter>dlib</Filter>
     </ClInclude>
-    <ClInclude Include="dem_refine.h">
+    <ClInclude Include="dem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <CudaCompile Include="cuda\cuda_helper_func.cu">
-      <Filter>cuda</Filter>
-    </CudaCompile>
   </ItemGroup>
 </Project>

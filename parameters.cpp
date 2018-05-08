@@ -12,7 +12,7 @@ string Kinect_Data_Dir	= "C:/Work/Kinect2/";
 string Desktop_Path		= "C:/Users/zhx/Desktop/";
 string Test_Output_Dir	= "C:/Users/zhx/Desktop/result/";
 string Data_Input_Dir	= "F:/FaceAnimation/pca_obj_simplified3/";
-string Kinect_Data_Dir	= "F:/Kinect2/test5/";
+string Kinect_Data_Dir	= "F:/Kinect2/test12/";
 #endif
 
 vector<int> face_landmark =
