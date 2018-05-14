@@ -16,53 +16,57 @@ using namespace Eigen;
 
 #include "parameters.h"
 
-class CeresInitializationError {
+class CeresFaceDenseError
+{
 public:
-	CeresInitializationError(int index, cv::Mat& frame, Matrix3Xd& frame_normals, Matrix3Xd& model_normals, MatrixXd& pca_models,
-		double fx, double fy, double cx, double cy, bool print = false);
+	CeresFaceDenseError(int mesh_index,
+		cv::Mat& frame,
+		MatrixXd& M_eg_, MatrixXd& P_eg_,
+		MatrixXd& normal_eg_);
 
 	template <class T>
 	bool operator()(const T* const R, const T* const tr, const T* const pca_coeff, T* residuals) const;
 
-	static ceres::CostFunction* Create(int index, cv::Mat& frame, Matrix3Xd& frame_normals, Matrix3Xd& model_normals, MatrixXd& pca_models,
-		double fx, double fy, double cx, double cy, bool print = false);
+	static ceres::CostFunction* Create(int mesh_index,
+		cv::Mat& frame,
+		MatrixXd& M_eg_, MatrixXd& P_eg_,
+		MatrixXd& normal_eg_);
 
-private:
-	int index;
+public:
+	int mesh_index;
 	cv::Mat& frame;
-	Matrix3Xd& frame_normals;
-	Matrix3Xd& model_normals;
-	MatrixXd& pca_models;
-	double fx, fy, cx, cy;
-	bool print;
+	MatrixXd& M_eg;
+	MatrixXd& P_eg;
+	MatrixXd& normal_eg;
+
+	DepthCameraIntrinsic depth_camera;
 };
 
 class CeresLandmarkError {
 public:
-	CeresLandmarkError(int index, int index1, 
+	CeresLandmarkError(int mesh_index,
 		cv::Mat& frame, 
 		MatrixXd& M_eg_, MatrixXd& P_eg_,
-		double fx, double fy, double cx, double cy, 
-		Vector3d p3_landmark);
+		Vector2d p2_landmark);
 
 	template <class T>
 	bool operator()(const T* const R, const T* const tr, const T* const pca_coeff, T* residuals) const;
 
-	static ceres::CostFunction* Create(int index, int index1, 
+	static ceres::CostFunction* Create(int mesh_index,
 		cv::Mat& frame, 
 		MatrixXd& M_eg_, MatrixXd& P_eg_,
-		double fx, double fy, double cx, double cy, 
-		Vector3d p3_landmark);
+		Vector2d p2_landmark);
 
-private:
-	int index;
-	int index1;
+public:
+	int mesh_index;
 	cv::Mat& frame;
 	MatrixXd& M_eg;
 	MatrixXd& P_eg;
-	double fx, fy, cx, cy;
-	Vector3d p3_landmark;
+	Vector2d p2_landmark;
 
+	DepthCameraIntrinsic depth_camera;
+	RgbCameraIntrinsic rgb_camera;
+	static Matrix<double, 3, 1> camera_extrinsic_translation;
 };
 
 class CeresInitializationRegulation
@@ -76,6 +80,29 @@ public:
 	static ceres::CostFunction* Create(VectorXd& pca_weights);
 private:
 	VectorXd& pca_weights;
+};
+
+class CeresMotionError {
+public:
+	CeresMotionError(cv::Mat& frame,
+		Vector2d p2_landmark,
+		Vector3d p3_model);
+
+	template <class T>
+	bool operator()(const T* const R, const T* const tr, T* residuals) const;
+
+	static ceres::CostFunction* Create(cv::Mat& frame,
+		Vector2d p2_landmark,
+		Vector3d p3_model);
+
+public:
+	cv::Mat& frame;
+	Vector2d p2_landmark;
+	Vector3d p3_model;
+
+	DepthCameraIntrinsic depth_camera;
+	RgbCameraIntrinsic rgb_camera;
+	static Matrix<double, 3, 1> camera_extrinsic_translation;
 };
 
 #endif

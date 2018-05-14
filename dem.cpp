@@ -97,6 +97,11 @@ void DEM()
 	DlibFaceDetector fd(landmark_detector_);
 	std::thread tt1(fd);
 	tt1.detach();
+	//
+	UpdateNeutralFaceCPU();
+	UpdateDeltaBlendshapeCPU();
+	UpdateExpressionFaceCPU();
+	UpdateNormalCPU();
 }
 
 void SolvePnP()
@@ -159,8 +164,8 @@ bool SVD()
 
 		//std::cout << Map<RowVector3d>(p3_landmark.data()) << "\n" << Map<RowVector3d>(p3_model_now.data()) << "\n\n";
 
-		if ((p3_landmark - p3_model_now).norm() > 50)
-			continue;
+		//if ((p3_landmark - p3_model_now).norm() > 50)
+		//	continue;
 		ps1.push_back(p3_landmark);
 		ps2.push_back(p3_model);
 		count++;
@@ -198,7 +203,39 @@ bool SVD()
 	return true;
 }
 
-bool UpdateFrame(bool init)
+void UpdateMotion()
+{
+	CeresMotionError::camera_extrinsic_translation = camera_extrinsic_translation_;
+
+	double param[6];
+	Eigen2Ceres(rotation_eg_, translation_eg_, param);
+
+	ceres::Problem problem1;
+	ceres::Solver::Options options1;
+	options1.linear_solver_type = ceres::DENSE_SCHUR;
+	options1.minimizer_progress_to_stdout = false;
+	options1.max_num_iterations = 25;
+	options1.num_threads = 4;
+	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(1.0), ceres::TAKE_OWNERSHIP);
+	CeresMotionError::camera_extrinsic_translation = camera_extrinsic_translation_;
+	for (int i = 17; i < 60; i++) {
+		problem1.AddResidualBlock(
+			CeresMotionError::Create(dframe_,
+				landmark_detector_.pts_[i],
+				expression_eg_.block(3 * face_landmark[i], 0, 3, 1)),
+			0,
+			param, param + 3
+		);
+	}
+	ceres::Solver::Summary summary1;
+	ceres::Solve(options1, &problem1, &summary1);
+
+	Ceres2Eigen(rotation_eg_, translation_eg_, param);
+	LOG(INFO) << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3);
+	std::cout << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3) << "\n";
+}
+
+bool UpdateFrame()
 {
 	static ImageReaderKinect image_reader(Kinect_Data_Dir);
 	image_reader.GetFrame(frame_count_, cframe_, dframe_);
@@ -206,14 +243,13 @@ bool UpdateFrame(bool init)
 	//cv::GaussianBlur(dframe_, dframe_, cv::Size(3, 3), 0);
 	landmark_detector_.Detect(cframe_, frame_count_, false);
 
-	//face_detector_();
-
-	if (!init)
-		//SolvePnP();
-		if (!SVD()) {
-			WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
-			return false;
-		}
+	LOG(INFO) << "rigid motion";
+	//SolvePnP();
+	/*if (!SVD()) {
+		WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
+		return false;
+	}*/
+	UpdateMotion();
 
 	return true;
 }
@@ -247,44 +283,73 @@ void Initialize()
 	double param[6];
 	Eigen2Ceres(rotation_eg_, translation_eg_, param);
 
-	ceres::Problem problem;
-	ceres::Solver::Options options;
-	options.linear_solver_type = ceres::DENSE_SCHUR;
-	options.minimizer_progress_to_stdout = false;
-	options.max_num_iterations = 20;
-	options.num_threads = 4;
-	//ceres::LossFunctionWrapper* loss_function_wrapper = new ceres::LossFunctionWrapper(new ceres::HuberLoss(1.0), ceres::TAKE_OWNERSHIP);
-
-	for (int i = 0; i < face_landmark_size; i++) {
-
-		Vector3d p3_landmark = ReprojectionDepth(landmark_detector_.pts_[i],
-			dframe_.at<unsigned short>(landmark_detector_.pts_[i](1), landmark_detector_.pts_[i](0)));
-
-		problem.AddResidualBlock(
-			CeresLandmarkError::Create(face_landmark[i], i,
+	ceres::Problem problem1;
+	ceres::Solver::Options options1;
+	options1.linear_solver_type = ceres::DENSE_SCHUR;
+	options1.minimizer_progress_to_stdout = false;
+	options1.max_num_iterations = 25;
+	options1.num_threads = 4;
+	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(1.0), ceres::TAKE_OWNERSHIP);
+	CeresLandmarkError::camera_extrinsic_translation = camera_extrinsic_translation_;
+	for (int i = 17; i < face_landmark_size; i++) {
+		problem1.AddResidualBlock(
+			CeresLandmarkError::Create(face_landmark[i],
 				dframe_,
 				M_eg_, P_eg_,
-				depth_camera_.fx, depth_camera_.fy, depth_camera_.cx, depth_camera_.cy,
-				p3_landmark),
-			0, param, param + 3, y_coeff_eg_.data()
+				landmark_detector_.pts_[i]),
+			loss_function_wrapper1, 
+			param, param + 3, y_coeff_eg_.data()
 		);
 	}
-
-	problem.AddResidualBlock(
+	for (int i = 0; i < vertex_size; i += 5) {
+		problem1.AddResidualBlock(
+			CeresFaceDenseError::Create(i,
+				dframe_,
+				M_eg_, P_eg_,
+				normal_eg_),
+			loss_function_wrapper1,
+			param, param + 3, y_coeff_eg_.data()
+		);
+	}
+	problem1.AddResidualBlock(
 		CeresInitializationRegulation::Create(y_weights_eg_),
 		0, y_coeff_eg_.data()
 	);
-
-	ceres::Solver::Summary summary;
-	ceres::Solve(options, &problem, &summary);
-	//std::cout << summary.FullReport();
-	//system("pause");
+	ceres::Solver::Summary summary1;
+	ceres::Solve(options1, &problem1, &summary1);
 
 	Ceres2Eigen(rotation_eg_, translation_eg_, param);
-
-	//LOG(INFO) << "rotation: " << rotation_eg_;
 	LOG(INFO) << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3);
 	LOG(INFO) << "Y: " << Map<RowVectorXd>(y_coeff_eg_.data(), pca_size);
+	//std::cout << "Y1: " << Map<RowVectorXd>(y_coeff_eg_.data(), exp_size);
+
+	//
+	//ceres::Problem problem2;
+	//ceres::Solver::Options options2 = options1;
+	//ceres::LossFunctionWrapper* loss_function_wrapper2 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(1.0), ceres::TAKE_OWNERSHIP);
+	//for (int i = 0; i < vertex_size; i += 20) {
+	//	problem2.AddResidualBlock(
+	//		CeresFaceDenseError::Create(i,
+	//			dframe_,
+	//			M_eg_, P_eg_),
+	//		loss_function_wrapper2,
+	//		param, param + 3, y_coeff_eg_.data()
+	//	);
+	//}
+	//problem2.AddResidualBlock(
+	//	CeresInitializationRegulation::Create(y_weights_eg_),
+	//	0, y_coeff_eg_.data()
+	//);
+	//ceres::Solver::Summary summary2;
+	//ceres::Solve(options2, &problem2, &summary2);
+
+	//std::cout << "Y2: " << Map<RowVectorXd>(y_coeff_eg_.data(), exp_size);
+
+	UpdateNeutralFaceCPU();
+	UpdateDeltaBlendshapeCPU();
+	UpdateExpressionFaceCPU();
+	WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
+	UpdateNormalCPU();
 }
 
 void GenerateIcpMatrix()
@@ -455,6 +520,8 @@ void UpdateNormalCPU()
 		Vector3d vec1 = model_map.col(ind[1]) - model_map.col(ind[0]);
 		Vector3d vec2 = model_map.col(ind[2]) - model_map.col(ind[0]);
 		Vector3d n = vec1.cross(vec2);
+		if (n(2) > 0)
+			n(2) *= -1;
 		normal_eg_.col(ind[0]) += n;
 		normal_eg_.col(ind[1]) += n;
 		normal_eg_.col(ind[2]) += n;
@@ -490,6 +557,7 @@ void WriteExpressionFace(int count, MatrixXd tmesh, Vector3d translation_eg, Mat
 	tmap.colwise() += translation_eg;
 	ml::MeshDatad mesh;
 	mesh.m_Vertices.resize(vertex_size);
+	mesh.m_Colors = mesh_.m_Colors;
 	mesh.m_FaceIndicesVertices = mesh_.m_FaceIndicesVertices;
 	UpdateMeshVertex(tmesh, mesh);
 

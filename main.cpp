@@ -40,23 +40,15 @@ int main(int argc, char** argv)
 	for (frame_count_ = 10; frame_count_ <= 13; frame_count_++) {
 		LOG(INFO) << "\n\n";
 		LOG(INFO) << "frame No." << frame_count_;
-		UpdateFrame(true);
+		UpdateFrame();
 		Initialize();
-	}
-
-	{
-		UpdateNeutralFaceCPU();
-		//WriteNeutralFace();
-		UpdateDeltaBlendshapeCPU();
-		UpdateExpressionFaceCPU();
-		WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
 	}
 
 	for (frame_count_ = 14; frame_count_ <= 10000;) {
 		LOG(INFO) << "\n\n";
 		LOG(INFO) << "frame No." << frame_count_;
 		std::cout << "# " << frame_count_ << "\n";
-		UpdateFrame(false);
+		UpdateFrame();
 		Track();
 		//Refine();
 

@@ -8,6 +8,22 @@ using namespace std;
 
 #define USE_KINECT 1
 
+struct DepthCameraIntrinsic
+{
+	double fx = 365.427002;
+	double fy = 365.427002;
+	double cx = 255.713501;
+	double cy = 208.248596;
+};
+
+struct RgbCameraIntrinsic
+{
+	double fx = 1081.37;
+	double fy = 1081.37;
+	double cx = 959.5;
+	double cy = 539.5;
+};
+
 const int vertex_size = 3641;
 const int face_size = 7028;
 const int pca_size = 50;
