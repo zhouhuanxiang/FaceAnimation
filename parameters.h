@@ -11,11 +11,14 @@ using namespace std;
 const int vertex_size = 3641;
 const int face_size = 7028;
 const int pca_size = 50;
-const int exp_size = 33 - 5;
+const int exp_size = 33 - 6;
+const int eye_exp_size = 8;
+const int mouth_exp_size = 33 - 6 - 8;
 const int face_landmark_size = 68;
-const int landmark_residual_pair = 68;
-const int dense_residual_pair = 365;
-const int total_residual_size = 68 * 6 + 365 * 3;
+
+const int eye_landmark_size = 22;
+const int mouth_landmark_size = 12;
+const int total_residual_size = (22 + 12) * 2;
 
 // GPU
 const int stream_size = 100;
@@ -30,6 +33,9 @@ extern string Data_Input_Dir;
 extern string Kinect_Data_Dir;
 
 extern std::vector<int> face_landmark;
-extern std::set<int> useless_expression;
+extern std::vector<int> useless_expression;
+extern std::vector<int> eye_expression;
+extern std::vector<int> mouth_expression;
+
 
 #endif

@@ -47,15 +47,20 @@ public:
 		}
 
 		int count = 0;
-		for (int i = 0; i < exp_size + useless_expression.size(); i++) {
-			if (useless_expression.find(i) != useless_expression.end())
-				continue;
+		for (int i = 0; i < exp_size; i++) {
+			int index;
+			if (i < eye_exp_size)
+				index = eye_expression[i];
+			else
+				index = mouth_expression[i - eye_exp_size];
+			std::cout << index << "\n";
+
 			MatrixXd b1_i, b2_i;
 			char str[20];
-			sprintf(str, "expression/m%d", i);
+			sprintf(str, "expression/m%d", index);
 			read_binary(Data_Input_Dir + str, b1_i);
 			b1_i = b1_i - pca.col(0);
-			sprintf(str, "expression/Py%d", i);
+			sprintf(str, "expression/Py%d", index);
 			read_binary(Data_Input_Dir + str, b2_i);
 			b2_i = b2_i - pca.block(0, 1, 3 * vertex_size, pca_size);
 
@@ -64,10 +69,6 @@ public:
 				b1_i.cols() != 1 ||
 				b2_i.cols() != pca_size)
 				printf("wrong size!\n");
-			/*Map<MatrixXd> map_b1_i(b1_i.data(), 3 * vertex_size * 1, 1);
-			Map<MatrixXd> map_b2_i(b2_i.data(), 3 * vertex_size * pca_size, 1);
-			delta_B1.col(i) = map_b1_i;
-			delta_B2.col(i) = map_b2_i;*/
 			delta_B1.col(count) = b1_i;
 			for (int j = 0; j < pca_size; j++) {
 				delta_B2.block(j * 3 * vertex_size, count, 3 * vertex_size, 1) = b2_i.col(j);
@@ -75,6 +76,8 @@ public:
 			count++;
 		}
 
+		std::cout << "\n";
+		
 		write_binary(Data_Input_Dir + "delta_B1_min", delta_B1);
 		write_binary(Data_Input_Dir + "delta_B2_min", delta_B2);
 	}

@@ -21,7 +21,7 @@
 
 using namespace Eigen;
 
-struct Camera
+struct DepthCameraIntrinsic
 {
 	double fx = 365.427002;
 	double fy = 365.427002;
@@ -29,6 +29,13 @@ struct Camera
 	double cy = 208.248596;
 };
 
+struct RgbCameraIntrinsic
+{
+	double fx = 1081.37;
+	double fy = 1081.37;
+	double cx = 959.5;
+	double cy = 539.5;
+};
 
 extern MatrixXd M_eg_;
 extern MatrixXd P_eg_;
@@ -56,8 +63,6 @@ extern MatrixXd normal_eg_;
 // track
 extern SparseMatrix<double> A_track_eg_;
 extern MatrixXd C_track_eg_;
-extern MatrixXd X_refine_eg_;
-extern MatrixXd Y_refine_eg_;
 
 // refine
 //extern DemRefineMiddleWare middleware_;
@@ -66,7 +71,14 @@ extern MatrixXd Y_refine_eg_;
 extern int frame_count_;
 extern cv::Mat dframe_;
 extern cv::Mat cframe_;
-extern Camera camera_;
+extern DepthCameraIntrinsic depth_camera_;
+extern RgbCameraIntrinsic rgb_camera_;
+extern Matrix<double, 3, 3> depth_camera_project_;
+extern Matrix<double, 3, 3> depth_camera_reproject_;
+extern Matrix<double, 3, 1> camera_extrinsic_translation_;
+extern Matrix<double, 3, 3> rgb_camera_project_;
+//extern Matrix<double, 3, 3> rgb_camera_reproject_;
+
 extern DlibLandmarkDetector landmark_detector_;
 
 void DEM();
@@ -75,9 +87,13 @@ void SolvePnP();
 
 bool UpdateFrame(bool init);
 
-Vector3d Point2d_2_Point3d(Vector2d p2, int depth);
+Vector3d ReprojectionDepth(Vector2d p2, int depth);
 
-Vector2d Point3d_2_Point2d(Vector3d p3);
+//Vector3d ReprojectionRgb(Vector2d p2, int depth);
+
+Vector3d ProjectionDepth(Vector3d p3);
+
+Vector3d ProjectionRgb(Vector3d p3);
 
 void Initialize();
 
@@ -91,8 +107,10 @@ void UpdateExpressionFaceCPU();
 
 void UpdateNormalCPU();
 
-void WriteNeutralFace();
+void WriteNeutralFace(int count, MatrixXd tmesh);
 
-void WriteExpressionFace();
+void WriteExpressionFace(int count, MatrixXd tmesh, Vector3d translation_eg, Matrix<double, 3, 3> rotation_eg);
+
+void WritePointCloud();
 
 #endif

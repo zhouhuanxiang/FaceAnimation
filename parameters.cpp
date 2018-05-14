@@ -12,7 +12,7 @@ string Kinect_Data_Dir	= "C:/Work/Kinect2/";
 string Desktop_Path		= "C:/Users/zhx/Desktop/";
 string Test_Output_Dir	= "C:/Users/zhx/Desktop/result/";
 string Data_Input_Dir	= "F:/FaceAnimation/pca_obj_simplified3/";
-string Kinect_Data_Dir	= "F:/Kinect2/test12/";
+string Kinect_Data_Dir	= "F:/Kinect2/test11/";
 #endif
 
 vector<int> face_landmark =
@@ -35,7 +35,19 @@ vector<int> face_landmark =
 	492,0,933
 };
 
-std::set<int> useless_expression =
+std::vector<int> useless_expression =
 {
-	2, 4, 6, 8, 19
+	2, 4, 6, 8, 19, 22
 };
+
+std::vector<int> eye_expression =
+{
+	0, 3, 5, 7, 25, 27, 29, 31
+};
+
+std::vector<int> mouth_expression = 
+{
+	1,9,10,11,12,13,14,15,16,17,18,20,21,23,24,26,28,30,32
+};
+
+

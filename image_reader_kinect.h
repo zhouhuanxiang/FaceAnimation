@@ -26,16 +26,22 @@ public:
 	{
 		LOG(INFO) << "read image (I/O)";
 
+		cv::Mat tmp;
+
 		char str[20];
 		if (USE_KINECT){
 			sprintf(str, "c%d.png", idx);
-			cframe = cv::imread(path + str, cv::IMREAD_UNCHANGED);
+			cframe = cv::imread(path + str/*, cv::IMREAD_UNCHANGED*/);
+			//cv::pyrUp(cframe, tmp, cframe.size() * 2);
+			//cv::pyrUp(tmp, cframe, tmp.size() * 2);
 		}
 		//cv::imshow("infrared", iframe);
 		//cv::waitKey(0);
 
 		sprintf(str, "d%d.png", idx);
 		dframe = cv::imread(path + str, cv::IMREAD_UNCHANGED);
+		//cv::pyrUp(dframe, tmp, dframe.size() * 2);
+		//cv::pyrUp(tmp, dframe, tmp.size() * 2);
 	}
 private:
 	string path;

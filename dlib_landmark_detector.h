@@ -29,15 +29,49 @@ public:
 	{
 		deserialize("shape_predictor_68_face_landmarks.dat") >> shape_predictor_;
 		pts_.resize(shape_predictor_.num_parts());
+
+		detector_ = get_frontal_face_detector();
 	}
 
-	bool Detect(cv::Mat& cframe, int frame_count, bool debug = false)
+	bool test(cv::Mat& cframe)
+	{
+		cv::Mat cframe_bgr_;
+		if (cframe.channels() == 4)
+			cv::cvtColor(cframe, cframe_bgr_, CV_BGRA2BGR);
+		else
+			cframe_bgr_ = cframe;
+		// Change to dlib's image format. No memory is copied.
+		cv_image<bgr_pixel> cimg(cframe_bgr_);
+
+		rectangle face_local;
+		face_local = detector_(cimg)[0];
+
+		full_object_detection shape = shape_predictor_(cimg, face_local);
+
+		for (int i = 0; i < shape.num_parts(); i++) {
+			pts_[i] = Eigen::Vector2d(shape.part(i).x(), shape.part(i).y());
+		}
+		xmin = face_local.left();
+		xmax = face_local.right();
+		ymin = face_local.top();
+		ymax = face_local.bottom();
+
+		// Custom Face Render
+		for (int i = 0; i < shape.num_parts(); i++) {
+			if (i < 17)	continue;
+			cv::circle(cframe, cv::Point(pts_[i](0), pts_[i](1)), 3, cv::Scalar(0, 0, 255, 255), -1);
+		}
+		cv::imshow("debug", cframe);
+		cv::waitKey(0);
+	}
+
+	bool Detect(cv::Mat cframe, int frame_count, bool debug = false)
 	{
 		lcount_ = frame_count;
 
 		// update cframe (with mtx)
 		cframe_bgr_mtx_.lock();
-		cv::cvtColor(cframe, cframe_bgr_, CV_BGRA2BGR);
+		cframe.copyTo(cframe_bgr_);
 		cframe_bgr_mtx_.unlock();
 		// Change to dlib's image format. No memory is copied.
 		cv_image<bgr_pixel> cimg(cframe_bgr_);
@@ -50,12 +84,29 @@ public:
 		// read face to local (with mtx)
 		rectangle face_local;
 		ReadFace(face_local);
-		
-		full_object_detection shape = shape_predictor_(cimg, face_local);
+		//
+		//face_local = detector_(cimg)[0];
+		//
 
+		cv::Mat cframe_bgr_face = cframe_bgr_(cv::Rect(face_local.left(), face_local.top(), face_local.width(), face_local.height())).clone();
+
+		cv::Mat tmp;
+		cv::pyrUp(cframe_bgr_face, tmp, cframe_bgr_face.size() * 2);
+		cv::pyrUp(tmp, cframe_bgr_face, tmp.size() * 2);
+		cv::pyrUp(cframe_bgr_face, tmp, cframe_bgr_face.size() * 2);
+		cv::pyrUp(tmp, cframe_bgr_face, tmp.size() * 2);
+
+		rectangle face_local_new = rectangle(0, 0, face_local.width() * 16, face_local.height() * 16);
+		cv_image<bgr_pixel> cimg_new(cframe_bgr_face);
+		full_object_detection shape = shape_predictor_(cimg_new, face_local_new);
 		for (int i = 0; i < shape.num_parts(); i++) {
-			pts_[i] = Eigen::Vector2d(shape.part(i).x(), shape.part(i).y());
+			pts_[i] = Eigen::Vector2d(shape.part(i).x() / 16.0 + face_local.left(), shape.part(i).y() / 16.0 + face_local.top()) ;
 		}
+
+		//full_object_detection shape = shape_predictor_(cimg, face_local);
+		//for (int i = 0; i < shape.num_parts(); i++) {
+		//	pts_[i] = Eigen::Vector2d(shape.part(i).x(), shape.part(i).y());
+		//}
 		xmin = face_local.left();
 		xmax = face_local.right();
 		ymin = face_local.top();
@@ -65,9 +116,9 @@ public:
 		if (debug) {
 			for (int i = 0; i < shape.num_parts(); i++) {
 				if (i < 17)	continue;
-				cv::circle(cframe, cv::Point(pts_[i](0), pts_[i](1)), 2, cv::Scalar(0, 0, 255, 255));
+				cv::circle(cframe_bgr_, cv::Point(pts_[i](0), pts_[i](1)), 2, cv::Scalar(0, 0, 255, 255));
 			}
-			cv::imshow("debug", cframe);
+			cv::imshow("debug", cframe_bgr_);
 			cv::waitKey(0);
 		}
 
@@ -116,6 +167,8 @@ private:
 	cv::Mat cframe_bgr_;
 	std::mutex face_mtx_;
 	std::mutex cframe_bgr_mtx_;
+
+	frontal_face_detector detector_;
 };
 
 #endif

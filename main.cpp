@@ -23,6 +23,18 @@ int main(int argc, char** argv)
 	//ModelReader mr;
 	//mr.ConcatMatrix();
 	//system("pause");
+ 
+
+	//cv::Mat t; 
+	////t = cv::imread("C:/Users/zhx/Desktop/1.PNG");
+	////t = cv::imread("C:/Users/zhx/Desktop/1.jpeg");
+	//t = cv::imread("F:/Kinect2/test11/c193.png");
+	//cv::Mat tt;
+	//cv::pyrUp(t, tt, cv::Size(t.cols * 2, t.rows * 2));
+	//cv::pyrUp(tt, t, cv::Size(tt.cols * 2, tt.rows * 2));
+	//landmark_detector_.test(t);
+	//cv::imwrite("C:/Users/zhx/Desktop/2.png", t);
+	//return 0;
 
 	DEM();
 	for (frame_count_ = 10; frame_count_ <= 13; frame_count_++) {
@@ -34,19 +46,21 @@ int main(int argc, char** argv)
 
 	{
 		UpdateNeutralFaceCPU();
-		WriteNeutralFace();
+		//WriteNeutralFace();
 		UpdateDeltaBlendshapeCPU();
 		UpdateExpressionFaceCPU();
-		WriteExpressionFace();
+		WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
 	}
 
-	for (frame_count_ = 14; frame_count_ <= 10000; frame_count_++) {
+	for (frame_count_ = 14; frame_count_ <= 10000;) {
 		LOG(INFO) << "\n\n";
 		LOG(INFO) << "frame No." << frame_count_;
 		std::cout << "# " << frame_count_ << "\n";
 		UpdateFrame(false);
 		Track();
 		//Refine();
+
+		frame_count_ += 1;
 	}
 
 	system("pause");

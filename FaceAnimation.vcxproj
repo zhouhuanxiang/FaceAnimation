@@ -83,8 +83,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)../../thirdparty2015/OpenCV/include;$(SolutionDir)../../thirdparty2015/mLib/include;$(SolutionDir)../../thirdparty2015/glog/include;$(SolutionDir)../../thirdparty2015/ceres-solver/include;$(SolutionDir)../../thirdparty2015/Eigen;$(SolutionDir)../../thirdparty2015/dlib;$(SolutionDir)../../thirdparty2015/clblast/include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)../../thirdparty2015/OpenCV/lib;$(SolutionDir)../../thirdparty2015/mLib/lib;$(SolutionDir)../../thirdparty2015/glog/lib;$(SolutionDir)../../thirdparty2015/ceres-solver/lib;$(SolutionDir)../../thirdparty2015/ViennaCL/lib;$(SolutionDir)../../thirdparty2015/clblast/release;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)../../thirdparty2015/OpenCV340/include;$(SolutionDir)../../thirdparty2015/mLib/include;$(SolutionDir)../../thirdparty2015/glog/include;$(SolutionDir)../../thirdparty2015/ceres-solver/include;$(SolutionDir)../../thirdparty2015/Eigen;$(SolutionDir)../../thirdparty2015/dlib;$(SolutionDir)../../thirdparty2015/clblast/include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)../../thirdparty2015/OpenCV340/lib;$(SolutionDir)../../thirdparty2015/mLib/lib;$(SolutionDir)../../thirdparty2015/glog/lib;$(SolutionDir)../../thirdparty2015/ceres-solver/lib;$(SolutionDir)../../thirdparty2015/ViennaCL/lib;$(SolutionDir)../../thirdparty2015/clblast/release;$(LibraryPath)</LibraryPath>
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
