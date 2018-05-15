@@ -111,7 +111,7 @@ void SolvePnP()
 	std::vector<cv::Point3d> pts3;
 	std::vector<cv::Point2d> pts2;
 	for (int i = 0; i < face_landmark_size; i++) {
-		if (i < 17 || i >= 60)
+		if (i < 17 || i >= 60 || (i >= 27 && i <= 30))
 			continue;
 		Vector3d pt3 = expression_eg_.block(3 * face_landmark[i], 0, 3, 1);
 		pts3.push_back(cv::Point3d(pt3(0), pt3(1), pt3(2)));
@@ -129,9 +129,9 @@ void SolvePnP()
 	static cv::Mat dist_coeffs = cv::Mat(5, 1, CV_64FC1, D);
 
 	cv::Mat inlier;
-	//cv::solvePnPRansac(pts3, pts2, cam_matrix, dist_coeffs, rotation_cv_, translation_cv_,
-	//	true, 100, 4.0, 0.95, inlier);
-	cv::solvePnP(pts3, pts2, cam_matrix, dist_coeffs, rotation_cv_, translation_cv_);
+	cv::solvePnPRansac(pts3, pts2, cam_matrix, dist_coeffs, rotation_cv_, translation_cv_,
+		true, 100, 4.0, 0.95, inlier);
+	//cv::solvePnP(pts3, pts2, cam_matrix, dist_coeffs, rotation_cv_, translation_cv_);
 	//for (int i = 0; i < inlier.rows; i++) {
 	//	std::cout << inlier.at<int>(i, 0) << " ";
 	//}
@@ -157,7 +157,7 @@ bool SVD()
 	std::vector<Vector3d> ps1, ps2;
 
 	for (int i = 0; i < face_landmark_size; i++) {
-		if (i < 17 || i >= 60)
+		if (i < 17 || i > 47)
 			continue;
 		Vector2d p2_landmark = landmark_detector_.pts_[i];
 		Vector3d p3_landmark = ReprojectionDepth(p2_landmark, dframe_.at<unsigned short>(p2_landmark(1), p2_landmark(0)));
@@ -219,17 +219,31 @@ void UpdateMotion()
 	options1.minimizer_progress_to_stdout = false;
 	options1.max_num_iterations = 25;
 	options1.num_threads = 4;
-	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(5.0), ceres::TAKE_OWNERSHIP);
+	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(2.0), ceres::TAKE_OWNERSHIP);
 	CeresMotionError::camera_extrinsic_translation = camera_extrinsic_translation_;
-	for (int i = 17; i < 60; i++) {
+
+	for (int i = 0; i < vertex_size; i += 25) {
 		problem1.AddResidualBlock(
 			CeresMotionError::Create(dframe_,
-				landmark_detector_.pts_[i],
-				expression_eg_.block(3 * face_landmark[i], 0, 3, 1)),
+				Vector2d(0, 0),
+				expression_eg_.block(3 * i, 0, 3, 1),
+				false,
+				landmark_detector_.xmin, landmark_detector_.xmax,landmark_detector_.ymin, landmark_detector_.ymax),
 			loss_function_wrapper1,
 			param, param + 3
 		);
 	}
+	//for (int i = 17; i <= 47; i++) {
+	//	problem1.AddResidualBlock(
+	//		CeresMotionError::Create(dframe_,
+	//			landmark_detector_.pts_[i],
+	//			expression_eg_.block(3 * face_landmark[i], 0, 3, 1),
+	//			true,
+	//			landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax),
+	//		loss_function_wrapper1,
+	//		param, param + 3
+	//	);
+	//}
 	ceres::Solver::Summary summary1;
 	ceres::Solve(options1, &problem1, &summary1);
 
@@ -248,15 +262,22 @@ bool UpdateFrame()
 
 	LOG(INFO) << "rigid motion";
 	//SolvePnP();
-	//translation_eg_ = Vector3d(0, 0, 500);
+	//WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
+
+	translation_eg_ = Vector3d(0, 0, 500);
 	if (!SVD()) {
 		WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
 		return false;
 	}
-	//translation_eg_ = Vector3d(0, 0, 500);
-	//UpdateMotion();
+	//translation_eg_ += Vector3d(0, 0, -20);
+	WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
 
-	return true;
+	//rotation_eg_.setIdentity();
+	translation_eg_ = Vector3d(0, 0, 500);
+	UpdateMotion();
+	WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
+
+  	return true;
 }
 
 Vector3d ReprojectionDepth(Vector2d p2, int depth)
@@ -296,7 +317,7 @@ void Initialize()
 	options1.num_threads = 4;
 	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(5.0), ceres::TAKE_OWNERSHIP);
 	CeresLandmarkError::camera_extrinsic_translation = camera_extrinsic_translation_;
-	for (int i = 17; i < face_landmark_size; i++) {
+	for (int i = 17; i <= 59; i++) {
 		problem1.AddResidualBlock(
 			CeresLandmarkError::Create(face_landmark[i],
 				dframe_,
@@ -306,12 +327,14 @@ void Initialize()
 			param, param + 3, y_coeff_eg_.data()
 		);
 	}
-	for (int i = 0; i < vertex_size; i += 5) {
+	for (int i = 0; i < vertex_size; i += 75) {
 		problem1.AddResidualBlock(
 			CeresFaceDenseError::Create(i,
 				dframe_,
 				M_eg_, P_eg_,
-				normal_eg_),
+				normal_eg_,
+				1,
+				false),
 			loss_function_wrapper1,
 			param, param + 3, y_coeff_eg_.data()
 		);
@@ -588,7 +611,7 @@ void WritePointCloud()
 	}
 	for (int f = 17; f < face_landmark_size; f++) {
 		Vector2d& p2 = landmark_detector_.pts_[f];
-		tmp.m_Colors[(p2.y() - landmark_detector_.ymin) * width + p2.x() - landmark_detector_.xmin] = ml::vec4d(1.0, 0, 0, 1);
+		tmp.m_Colors[(p2.y() - landmark_detector_.ymin) * width + p2.x() - landmark_detector_.xmin] = ml::vec4d((f + 130.0) / 200, 0, 0, 1);
 	}
 	char str[20];
 	sprintf(str, "%d/pcl.obj", frame_count_);

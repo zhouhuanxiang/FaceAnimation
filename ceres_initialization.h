@@ -22,7 +22,9 @@ public:
 	CeresFaceDenseError(int mesh_index,
 		cv::Mat& frame,
 		MatrixXd& M_eg_, MatrixXd& P_eg_,
-		MatrixXd& normal_eg_);
+		MatrixXd& normal_eg_,
+		double weight,
+		bool point_to_point);
 
 	template <class T>
 	bool operator()(const T* const R, const T* const tr, const T* const pca_coeff, T* residuals) const;
@@ -30,7 +32,9 @@ public:
 	static ceres::CostFunction* Create(int mesh_index,
 		cv::Mat& frame,
 		MatrixXd& M_eg_, MatrixXd& P_eg_,
-		MatrixXd& normal_eg_);
+		MatrixXd& normal_eg_,
+		double weight,
+		bool point_to_point);
 
 public:
 	int mesh_index;
@@ -40,6 +44,9 @@ public:
 	MatrixXd& normal_eg;
 
 	DepthCameraIntrinsic depth_camera;
+
+	double weight;
+	bool point_to_point;
 };
 
 class CeresLandmarkError {
@@ -86,14 +93,18 @@ class CeresMotionError {
 public:
 	CeresMotionError(cv::Mat& frame,
 		Vector2d p2_landmark,
-		Vector3d p3_model);
+		Vector3d p3_model,
+		bool is_landmark,
+		double xmin, double xmax, double ymin, double ymax);
 
 	template <class T>
 	bool operator()(const T* const R, const T* const tr, T* residuals) const;
 
 	static ceres::CostFunction* Create(cv::Mat& frame,
 		Vector2d p2_landmark,
-		Vector3d p3_model);
+		Vector3d p3_model,
+		bool is_landmark,
+		double xmin, double xmax, double ymin, double ymax);
 
 public:
 	cv::Mat& frame;
@@ -103,6 +114,9 @@ public:
 	DepthCameraIntrinsic depth_camera;
 	RgbCameraIntrinsic rgb_camera;
 	static Matrix<double, 3, 1> camera_extrinsic_translation;
+
+	bool is_landmark;
+	double xmin, xmax, ymin, ymax;
 };
 
 #endif

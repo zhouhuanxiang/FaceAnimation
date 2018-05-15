@@ -3,11 +3,15 @@
 CeresFaceDenseError::CeresFaceDenseError(int mesh_index,
 	cv::Mat& frame,
 	MatrixXd& M_eg_, MatrixXd& P_eg_,
-	MatrixXd& normal_eg_)
+	MatrixXd& normal_eg_,
+	double weight,
+	bool point_to_point)
 	:mesh_index(mesh_index),
 	frame(frame),
 	M_eg(M_eg_), P_eg(P_eg_),
-	normal_eg(normal_eg_)
+	normal_eg(normal_eg_),
+	weight(weight),
+	point_to_point(point_to_point)
 {}
 
 template <class T>
@@ -33,8 +37,6 @@ bool CeresFaceDenseError::operator()(const T* const R, const T* const tr, const 
 	p3[1] = -1.0 * p1[1] / p1[2] * depth_camera.fy + depth_camera.cy;
 	p3[2] = p1[2];
 
-	double alpha2 = 1;
-
 	int px = (int)*(double*)&p3[0];
 	int py = (int)*(double*)&p3[1];
 	T wx = p3[0] - (T)px;
@@ -59,12 +61,20 @@ bool CeresFaceDenseError::operator()(const T* const R, const T* const tr, const 
 	for (int i = 0; i < 4; i++) {
 		d += (double)frame.at<unsigned short>(ys[i], xs[i]) * ws[i];
 	}
-	T p4[3];
-	p4[0] = d / p1[2] * p1[0];
-	p4[1] = d / p1[2] * p1[1];
-	p4[2] = d;
-	Vector3d n = normal_eg.col(mesh_index);
-	residuals[0] = n(0) * (p4[0] - p1[0]) + n(1) * (p4[1] - p1[1]) + n(2) * (p4[2] - p1[2]);
+
+	if (point_to_point) {
+		residuals[0] = d - p1[2];
+	}
+	else {
+		T p4[3];
+		p4[0] = d / p1[2] * p1[0];
+		p4[1] = d / p1[2] * p1[1];
+		p4[2] = d;
+		Vector3d n = normal_eg.col(mesh_index);
+		residuals[0] = n(0) * (p4[0] - p1[0]) + n(1) * (p4[1] - p1[1]) + n(2) * (p4[2] - p1[2]);
+	}
+
+	residuals[0] = weight * residuals[0];
 
 	return true;
 }
@@ -72,14 +82,18 @@ bool CeresFaceDenseError::operator()(const T* const R, const T* const tr, const 
 ceres::CostFunction* CeresFaceDenseError::Create(int mesh_index,
 	cv::Mat& frame,
 	MatrixXd& M_eg_, MatrixXd& P_eg_,
-	MatrixXd& normal_eg_)
+	MatrixXd& normal_eg_,
+	double weight,
+	bool point_to_point)
 {
 	// first residual dimension, followed with parameters' dimensions
 	return (new ceres::AutoDiffCostFunction<CeresFaceDenseError, 1, 3, 3, pca_size>(
 		new CeresFaceDenseError(mesh_index,
 			frame,
 			M_eg_, P_eg_,
-			normal_eg_)));
+			normal_eg_,
+			weight,
+			point_to_point)));
 }
 
 Matrix<double, 3, 1> CeresLandmarkError::camera_extrinsic_translation = Matrix<double, 3, 1>();
@@ -118,7 +132,7 @@ bool CeresLandmarkError::operator()(const T* const R, const T* const tr, const T
 	p3[2] = p1[2];
 	
 	double alpha1 = 1;
-	double alpha2 = 0.1;
+	double alpha2 = 0.0;
 	residuals[0] = alpha1 * (p3[0] - p2_landmark(0));
 	residuals[1] = alpha1 * (p3[1] - p2_landmark(1));
 	//std::cout << *(double*)&(p3[0]) << " " << *(double*)&(p3[1]) << "\n";
@@ -192,10 +206,14 @@ Matrix<double, 3, 1> CeresMotionError::camera_extrinsic_translation = Matrix<dou
 
 CeresMotionError::CeresMotionError(cv::Mat& frame,
 	Vector2d p2_landmark,
-	Vector3d p3_model)
+	Vector3d p3_model,
+	bool is_landmark,
+	double xmin, double xmax, double ymin, double ymax)
 	:frame(frame),
 	p2_landmark(p2_landmark),
-	p3_model(p3_model)
+	p3_model(p3_model),
+	is_landmark(is_landmark),
+	xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax)
 {}
 
 template <class T>
@@ -219,37 +237,40 @@ bool CeresMotionError::operator()(const T* const R, const T* const tr, T* residu
 	p3[2] = p1[2];
 
 	double alpha1 = 1;
-	double alpha2 = 0.0;
-	residuals[0] = alpha1 * (p3[0] - p2_landmark(0));
-	residuals[1] = alpha1 * (p3[1] - p2_landmark(1));
-	//std::cout << *(double*)&(p3[0]) << " " << *(double*)&(p3[1]) << "\n";
-	//std::cout << p2_landmark(0) << " " << p2_landmark(1) << "@@\n";
-
-	int px = (int)*(double*)&p3[0];
-	int py = (int)*(double*)&p3[1];
-	T wx = p3[0] - (T)px;
-	T wy = p3[1] - (T)py;
-	int rx = px + 1, ry = py + 1;
-	if (!(px > 0 && py > 0
-		&& rx < frame.cols
-		&& ry < frame.rows)) {
-		return true;
+	double alpha2 = 1;
+	if (is_landmark) {
+		residuals[0] = alpha1 * (p3[0] - p2_landmark(0));
+		residuals[1] = alpha1 * (p3[1] - p2_landmark(1));
 	}
-	int xs[4], ys[4];
-	xs[0] = px; ys[0] = py;
-	xs[1] = rx; ys[1] = py;
-	xs[2] = px; ys[2] = ry;
-	xs[3] = rx; ys[3] = ry;
-	T ws[4];
-	ws[0] = ((T)1. - wx) * ((T)1. - wy);
-	ws[1] = wx * ((T)1. - wy);
-	ws[2] = ((T)1. - wx) * wy;
-	ws[3] = wx * wy;
-	T d = T(0);
-	for (int i = 0; i < 4; i++) {
-		d += (double)frame.at<unsigned short>(ys[i], xs[i]) * ws[i];
+	//std::cout << *(double*)&(p3[0]) << " " << *(double*)&(p3[1]) << "\n" << p2_landmark(0) << " " << p2_landmark(1) << "@@\n";
+	else {
+		int px = (int)*(double*)&p3[0];
+		int py = (int)*(double*)&p3[1];
+		T wx = p3[0] - (T)px;
+		T wy = p3[1] - (T)py;
+		int rx = px + 1, ry = py + 1;
+		if (rx < xmin || ry < ymin || px > xmax || py > ymax) {
+			residuals[0] = p3[0] - (xmin + xmax) / 2;
+			residuals[1] = p3[1] - (ymin + ymax) / 2;
+			return true;
+		}
+		int xs[4], ys[4];
+		xs[0] = px; ys[0] = py;
+		xs[1] = rx; ys[1] = py;
+		xs[2] = px; ys[2] = ry;
+		xs[3] = rx; ys[3] = ry;
+		T ws[4];
+		ws[0] = ((T)1. - wx) * ((T)1. - wy);
+		ws[1] = wx * ((T)1. - wy);
+		ws[2] = ((T)1. - wx) * wy;
+		ws[3] = wx * wy;
+		T d = T(0);
+		for (int i = 0; i < 4; i++) {
+			d += (double)frame.at<unsigned short>(ys[i], xs[i]) * ws[i];
+		}
+		residuals[2] = alpha2 * (p3[2] - d);
+		std::cout << *(double*)&(p3[2]) << " " << *(double*)&(d) << "\n";
 	}
-	residuals[2] = alpha2 * (p3[2] - d);
 
 	/*std::cout << px << " " << py << "\n";
 	std::cout << p3_model(0) << " " << p3_model(1) << " " << p3_model(2) << "\n";
@@ -260,10 +281,14 @@ bool CeresMotionError::operator()(const T* const R, const T* const tr, T* residu
 
 ceres::CostFunction* CeresMotionError::Create(cv::Mat& frame,
 	Vector2d p2_landmark,
-	Vector3d p3_model)
+	Vector3d p3_model,
+	bool is_landmark,
+	double xmin, double xmax, double ymin, double ymax)
 {
 	return (new ceres::AutoDiffCostFunction<CeresMotionError, 2 + 1, 3, 3>(
 		new CeresMotionError(frame,
 			p2_landmark,
-			p3_model)));
+			p3_model,
+			is_landmark,
+			xmin, xmax, ymin, ymax)));
 }

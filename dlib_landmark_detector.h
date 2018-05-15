@@ -93,14 +93,12 @@ public:
 		cv::Mat tmp;
 		cv::pyrUp(cframe_bgr_face, tmp, cframe_bgr_face.size() * 2);
 		cv::pyrUp(tmp, cframe_bgr_face, tmp.size() * 2);
-		cv::pyrUp(cframe_bgr_face, tmp, cframe_bgr_face.size() * 2);
-		cv::pyrUp(tmp, cframe_bgr_face, tmp.size() * 2);
 
-		rectangle face_local_new = rectangle(0, 0, face_local.width() * 16, face_local.height() * 16);
+		rectangle face_local_new = rectangle(0, 0, face_local.width() * 4, face_local.height() * 4);
 		cv_image<bgr_pixel> cimg_new(cframe_bgr_face);
 		full_object_detection shape = shape_predictor_(cimg_new, face_local_new);
 		for (int i = 0; i < shape.num_parts(); i++) {
-			pts_[i] = Eigen::Vector2d(shape.part(i).x() / 16.0 + face_local.left(), shape.part(i).y() / 16.0 + face_local.top()) ;
+			pts_[i] = Eigen::Vector2d(shape.part(i).x() / 4 + face_local.left(), shape.part(i).y() / 4 + face_local.top()) ;
 		}
 
 		//full_object_detection shape = shape_predictor_(cimg, face_local);
@@ -116,7 +114,7 @@ public:
 		if (debug) {
 			for (int i = 0; i < shape.num_parts(); i++) {
 				if (i < 17)	continue;
-				cv::circle(cframe_bgr_, cv::Point(pts_[i](0), pts_[i](1)), 2, cv::Scalar(0, 0, 255, 255));
+				cv::circle(cframe_bgr_, cv::Point(pts_[i](0), pts_[i](1)), 2, cv::Scalar(0, 0, 255, 255), -1);
 			}
 			cv::imshow("debug", cframe_bgr_);
 			cv::waitKey(0);

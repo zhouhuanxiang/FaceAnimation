@@ -1,7 +1,7 @@
 #include "parameters.h"
 using namespace std;
 
-#define LAPTOP 1
+#define LAPTOP 0
 
 #if LAPTOP
 string Desktop_Path		= "C:/Users/zhx/Desktop/";

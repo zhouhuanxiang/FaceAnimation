@@ -26,13 +26,14 @@ int main(int argc, char** argv)
 
 	DEM();
 
-	for (int i = 0; i < 500; i++) {
-		UpdateFrame();
-		WritePointCloud();
-	}
-	return 0;
+	//for (frame_count_ = 0; frame_count_ < 500; frame_count_++) {
+	//	std::cout << frame_count_ << "\n";
+	//	UpdateFrame();
+	//	WritePointCloud();
+	//}
+	//return 0;
 
-	for (frame_count_ = 10; frame_count_ <= 13; frame_count_++) {
+	for (frame_count_ = 12; frame_count_ <= 14; frame_count_++) {
 		LOG(INFO) << "\n\n";
 		LOG(INFO) << "frame No." << frame_count_;
 		std::cout << "# " << frame_count_ << "\n";
