@@ -68,6 +68,8 @@ void DEM()
 	//
 	rotation_cv_ = cv::Mat(3, 1, CV_64FC1);
 	translation_cv_ = cv::Mat(3, 1, CV_64FC1);
+	rotation_eg_.setZero();
+	translation_eg_ = Vector3d(0, 0, 500);
 	//
 	x_coeff_eg_.resize(exp_size, 1);
 	x_coeff_eg_.setZero();
@@ -146,6 +148,7 @@ void SolvePnP()
 	}
 	//LOG(INFO) << "rotation:" << rotation_eg_;
 	LOG(INFO) << "translation:" << Map<RowVectorXd>(translation_eg_.data(), 3);
+	std::cout << "translation:" << Map<RowVectorXd>(translation_eg_.data(), 3) << "\n";
 }
 
 bool SVD()
@@ -212,18 +215,18 @@ void UpdateMotion()
 
 	ceres::Problem problem1;
 	ceres::Solver::Options options1;
-	options1.linear_solver_type = ceres::DENSE_SCHUR;
+	options1.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY;
 	options1.minimizer_progress_to_stdout = false;
 	options1.max_num_iterations = 25;
 	options1.num_threads = 4;
-	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(1.0), ceres::TAKE_OWNERSHIP);
+	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(5.0), ceres::TAKE_OWNERSHIP);
 	CeresMotionError::camera_extrinsic_translation = camera_extrinsic_translation_;
 	for (int i = 17; i < 60; i++) {
 		problem1.AddResidualBlock(
 			CeresMotionError::Create(dframe_,
 				landmark_detector_.pts_[i],
 				expression_eg_.block(3 * face_landmark[i], 0, 3, 1)),
-			0,
+			loss_function_wrapper1,
 			param, param + 3
 		);
 	}
@@ -245,11 +248,13 @@ bool UpdateFrame()
 
 	LOG(INFO) << "rigid motion";
 	//SolvePnP();
-	/*if (!SVD()) {
+	//translation_eg_ = Vector3d(0, 0, 500);
+	if (!SVD()) {
 		WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
 		return false;
-	}*/
-	UpdateMotion();
+	}
+	//translation_eg_ = Vector3d(0, 0, 500);
+	//UpdateMotion();
 
 	return true;
 }
@@ -289,7 +294,7 @@ void Initialize()
 	options1.minimizer_progress_to_stdout = false;
 	options1.max_num_iterations = 25;
 	options1.num_threads = 4;
-	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(1.0), ceres::TAKE_OWNERSHIP);
+	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(5.0), ceres::TAKE_OWNERSHIP);
 	CeresLandmarkError::camera_extrinsic_translation = camera_extrinsic_translation_;
 	for (int i = 17; i < face_landmark_size; i++) {
 		problem1.AddResidualBlock(
@@ -321,6 +326,7 @@ void Initialize()
 	Ceres2Eigen(rotation_eg_, translation_eg_, param);
 	LOG(INFO) << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3);
 	LOG(INFO) << "Y: " << Map<RowVectorXd>(y_coeff_eg_.data(), pca_size);
+	std::cout << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3) << "\n";
 	//std::cout << "Y1: " << Map<RowVectorXd>(y_coeff_eg_.data(), exp_size);
 
 	//
@@ -572,19 +578,17 @@ void WritePointCloud()
 	tmp.m_Vertices.resize(width * height);
 	tmp.m_Colors.resize(width * height);
 	for (int i = landmark_detector_.ymin; i < landmark_detector_.ymax; i++) {
-	for (int j = landmark_detector_.xmin; j < landmark_detector_.xmax; j++) {
-	int depth = dframe_.at<unsigned short>(i, j);
-	if (depth > 2000)
-	continue;
-	Vector3d p3 = ReprojectionDepth(Vector2d(j, i), depth);
-	tmp.m_Vertices[(i - landmark_detector_.ymin) * width + j - landmark_detector_.xmin] = ml::vec3d(p3.data());
+		for (int j = landmark_detector_.xmin; j < landmark_detector_.xmax; j++) {
+			int depth = dframe_.at<unsigned short>(i, j);
+			if (depth > 2000)
+				continue;
+			Vector3d p3 = ReprojectionDepth(Vector2d(j, i), depth);
+			tmp.m_Vertices[(i - landmark_detector_.ymin) * width + j - landmark_detector_.xmin] = ml::vec3d(p3.data());
+		}
 	}
-	}
-	for (int f = 0; f < face_landmark_size; f++) {
-	if (f < 17)
-	continue;
-	Vector2d& p2 = landmark_detector_.pts_[f];
-	tmp.m_Colors[(p2.y() - landmark_detector_.ymin) * width + p2.x() - landmark_detector_.xmin] = ml::vec4d(1.0, 0, 0, 1);
+	for (int f = 17; f < face_landmark_size; f++) {
+		Vector2d& p2 = landmark_detector_.pts_[f];
+		tmp.m_Colors[(p2.y() - landmark_detector_.ymin) * width + p2.x() - landmark_detector_.xmin] = ml::vec4d(1.0, 0, 0, 1);
 	}
 	char str[20];
 	sprintf(str, "%d/pcl.obj", frame_count_);

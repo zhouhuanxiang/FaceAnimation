@@ -219,7 +219,7 @@ bool CeresMotionError::operator()(const T* const R, const T* const tr, T* residu
 	p3[2] = p1[2];
 
 	double alpha1 = 1;
-	double alpha2 = 0.1;
+	double alpha2 = 0.0;
 	residuals[0] = alpha1 * (p3[0] - p2_landmark(0));
 	residuals[1] = alpha1 * (p3[1] - p2_landmark(1));
 	//std::cout << *(double*)&(p3[0]) << " " << *(double*)&(p3[1]) << "\n";
