@@ -50,6 +50,9 @@
     <ClCompile Include="dem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ceres_motion.cpp">
+      <Filter>ceres</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ceres_initialization.h">
@@ -84,6 +87,9 @@
     </ClInclude>
     <ClInclude Include="dem.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ceres_motion.h">
+      <Filter>ceres</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

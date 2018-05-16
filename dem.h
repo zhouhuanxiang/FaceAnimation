@@ -3,6 +3,7 @@
 
 #include "ceres_param.h"
 #include "ceres_initialization.h"
+#include "ceres_motion.h"
 #include "model_reader.h"
 #include "image_reader_kinect.h"
 #include "dlib_face_detector.h"

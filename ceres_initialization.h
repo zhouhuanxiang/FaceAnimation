@@ -89,34 +89,4 @@ private:
 	VectorXd& pca_weights;
 };
 
-class CeresMotionError {
-public:
-	CeresMotionError(cv::Mat& frame,
-		Vector2d p2_landmark,
-		Vector3d p3_model,
-		bool is_landmark,
-		double xmin, double xmax, double ymin, double ymax);
-
-	template <class T>
-	bool operator()(const T* const R, const T* const tr, T* residuals) const;
-
-	static ceres::CostFunction* Create(cv::Mat& frame,
-		Vector2d p2_landmark,
-		Vector3d p3_model,
-		bool is_landmark,
-		double xmin, double xmax, double ymin, double ymax);
-
-public:
-	cv::Mat& frame;
-	Vector2d p2_landmark;
-	Vector3d p3_model;
-
-	DepthCameraIntrinsic depth_camera;
-	RgbCameraIntrinsic rgb_camera;
-	static Matrix<double, 3, 1> camera_extrinsic_translation;
-
-	bool is_landmark;
-	double xmin, xmax, ymin, ymax;
-};
-
 #endif

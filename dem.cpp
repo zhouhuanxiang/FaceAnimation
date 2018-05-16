@@ -129,9 +129,9 @@ void SolvePnP()
 	static cv::Mat dist_coeffs = cv::Mat(5, 1, CV_64FC1, D);
 
 	cv::Mat inlier;
-	cv::solvePnPRansac(pts3, pts2, cam_matrix, dist_coeffs, rotation_cv_, translation_cv_,
-		true, 100, 4.0, 0.95, inlier);
-	//cv::solvePnP(pts3, pts2, cam_matrix, dist_coeffs, rotation_cv_, translation_cv_);
+	//cv::solvePnPRansac(pts3, pts2, cam_matrix, dist_coeffs, rotation_cv_, translation_cv_,
+		//true, 100, 4.0, 0.95, inlier);
+	cv::solvePnP(pts3, pts2, cam_matrix, dist_coeffs, rotation_cv_, translation_cv_);
 	//for (int i = 0; i < inlier.rows; i++) {
 	//	std::cout << inlier.at<int>(i, 0) << " ";
 	//}
@@ -208,8 +208,6 @@ bool SVD()
 
 void UpdateMotion()
 {
-	CeresMotionError::camera_extrinsic_translation = camera_extrinsic_translation_;
-
 	double param[6];
 	Eigen2Ceres(rotation_eg_, translation_eg_, param);
 
@@ -217,39 +215,65 @@ void UpdateMotion()
 	ceres::Solver::Options options1;
 	options1.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY;
 	options1.minimizer_progress_to_stdout = false;
-	options1.max_num_iterations = 25;
-	options1.num_threads = 4;
-	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(2.0), ceres::TAKE_OWNERSHIP);
-	CeresMotionError::camera_extrinsic_translation = camera_extrinsic_translation_;
+	options1.max_num_iterations = 500;
+	options1.num_threads = 16;
+	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::HuberLoss(1.0), ceres::TAKE_OWNERSHIP);
+	CeresMotionDenseError::camera_extrinsic_translation = camera_extrinsic_translation_;
+	CeresMotionLandmarkError::camera_extrinsic_translation = camera_extrinsic_translation_;
 
-	for (int i = 0; i < vertex_size; i += 25) {
+	for (int i = 17; i <= 47; i++) {
 		problem1.AddResidualBlock(
-			CeresMotionError::Create(dframe_,
-				Vector2d(0, 0),
-				expression_eg_.block(3 * i, 0, 3, 1),
-				false,
-				landmark_detector_.xmin, landmark_detector_.xmax,landmark_detector_.ymin, landmark_detector_.ymax),
+			CeresMotionLandmarkError::Create(dframe_,
+				landmark_detector_.pts_[i],
+				expression_eg_.block(3 * face_landmark[i], 0, 3, 1),
+				landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax),
 			loss_function_wrapper1,
 			param, param + 3
 		);
 	}
-	//for (int i = 17; i <= 47; i++) {
-	//	problem1.AddResidualBlock(
-	//		CeresMotionError::Create(dframe_,
-	//			landmark_detector_.pts_[i],
-	//			expression_eg_.block(3 * face_landmark[i], 0, 3, 1),
-	//			true,
-	//			landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax),
-	//		loss_function_wrapper1,
-	//		param, param + 3
-	//	);
-	//}
+
 	ceres::Solver::Summary summary1;
 	ceres::Solve(options1, &problem1, &summary1);
 
+	ceres::Problem problem2;
+	for (int i = 0; i < vertex_size; i += 25) {
+		problem1.AddResidualBlock(
+			CeresMotionDenseError::Create(dframe_,
+				Vector2d(0, 0),
+				expression_eg_.block(3 * i, 0, 3, 1),
+				landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax),
+			0,
+			param, param + 3
+		);
+	}
+	ceres::Solve(options1, &problem1, &summary1);
+	//std::cout << summary2.FullReport() << "\n";
+
+	//for (int i = 0; i < vertex_size; i += 25) {
+	//	CeresMotionError error = CeresMotionError(dframe_,
+	//		Vector2d(0, 0),
+	//		expression_eg_.block(3 * i, 0, 3, 1),
+	//		false,
+	//		landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax);
+	//	double residuals[3];
+	//	error(param, param + 3, residuals);
+	//	std::cout << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << " " << setw(15) << residuals[2] << "\n";
+	//}
+
+	//for (int i = 17; i <= 47; i++) {
+	//	CeresMotionError error = CeresMotionError(dframe_,
+	//		landmark_detector_.pts_[i],
+	//		expression_eg_.block(3 * face_landmark[i], 0, 3, 1),
+	//		true,
+	//		landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax);
+	//	double residuals[3];
+	//	error(param, param + 3, residuals);
+	//	std::cout << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << " " << setw(15) << residuals[2] << "\n";
+	//}
+
 	Ceres2Eigen(rotation_eg_, translation_eg_, param);
 	LOG(INFO) << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3);
-	std::cout << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3) << "\n";
+	std::cout << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3) << "@\n";
 }
 
 bool UpdateFrame()
@@ -264,18 +288,17 @@ bool UpdateFrame()
 	//SolvePnP();
 	//WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
 
-	translation_eg_ = Vector3d(0, 0, 500);
+	/*translation_eg_ = Vector3d(0, 0, 500);
 	if (!SVD()) {
 		WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
 		return false;
-	}
+	}*/
 	//translation_eg_ += Vector3d(0, 0, -20);
-	WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
+	//WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
 
 	//rotation_eg_.setIdentity();
-	translation_eg_ = Vector3d(0, 0, 500);
 	UpdateMotion();
-	WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
+	//WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
 
   	return true;
 }
@@ -317,7 +340,7 @@ void Initialize()
 	options1.num_threads = 4;
 	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(5.0), ceres::TAKE_OWNERSHIP);
 	CeresLandmarkError::camera_extrinsic_translation = camera_extrinsic_translation_;
-	for (int i = 17; i <= 59; i++) {
+	for (int i = 17; i <= 67; i++) {
 		problem1.AddResidualBlock(
 			CeresLandmarkError::Create(face_landmark[i],
 				dframe_,

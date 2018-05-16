@@ -73,8 +73,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)../../thirdparty2015/OpenCV/include;$(SolutionDir)../../thirdparty2015/mLib/include;$(SolutionDir)../../thirdparty2015/glog/include;$(SolutionDir)../../thirdparty2015/ceres-solver/include;$(SolutionDir)../../thirdparty2015/Eigen;$(SolutionDir)../../thirdparty2015/dlib;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)../../thirdparty2015/OpenCV/lib;$(SolutionDir)../../thirdparty2015/mLib/lib;$(SolutionDir)../../thirdparty2015/glog/lib;$(SolutionDir)../../thirdparty2015/ceres-solver/lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)../../thirdparty2015/OpenCV340/include;$(SolutionDir)../../thirdparty2015/mLib/include;$(SolutionDir)../../thirdparty2015/glog/include;$(SolutionDir)../../thirdparty2015/ceres-solver/include;$(SolutionDir)../../thirdparty2015/Eigen;$(SolutionDir)../../thirdparty2015/dlib;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)../../thirdparty2015/OpenCV340/lib;$(SolutionDir)../../thirdparty2015/mLib/lib;$(SolutionDir)../../thirdparty2015/glog/lib;$(SolutionDir)../../thirdparty2015/ceres-solver/lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -112,7 +112,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ceresd.lib;libglogd.lib;opencv_world340d.lib;cudart.lib;cublas.lib;cusparse.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ceresd.lib;libglogd.lib;opencv_world340d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -166,6 +166,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\thirdparty2015\dlib\dlib\all\source.cpp" />
     <ClCompile Include="ceres_initialization.cpp" />
+    <ClCompile Include="ceres_motion.cpp" />
     <ClCompile Include="ceres_param.cpp" />
     <ClCompile Include="dem.cpp" />
     <ClCompile Include="main.cpp" />
@@ -174,6 +175,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ceres_initialization.h" />
+    <ClInclude Include="ceres_motion.h" />
     <ClInclude Include="ceres_param.h" />
     <ClInclude Include="dem.h" />
     <ClInclude Include="dlib_landmark_detector.h" />

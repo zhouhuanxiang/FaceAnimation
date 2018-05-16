@@ -188,7 +188,7 @@ template <class T>
 bool CeresInitializationRegulation::operator()(const T* const pca_coeff, T* residuals) const
 {
 	for (int i = 0; i < pca_size; i++){
-		residuals[i] = ((T)pca_coeff[i]) * pca_weights(i) * 50.0;
+		residuals[i] = ((T)pca_coeff[i]) * pca_weights(i) * 35.0;
 		//std::cout << residuals[i] << "\n";
 	}
 	//std::cout << "\n";
@@ -200,95 +200,4 @@ ceres::CostFunction* CeresInitializationRegulation::Create(VectorXd& pca_weights
 	// first residual dimension, followed with parameters' dimensions
 	return (new ceres::AutoDiffCostFunction<CeresInitializationRegulation, pca_size, pca_size>(
 		new CeresInitializationRegulation(pca_weights)));
-}
-
-Matrix<double, 3, 1> CeresMotionError::camera_extrinsic_translation = Matrix<double, 3, 1>();
-
-CeresMotionError::CeresMotionError(cv::Mat& frame,
-	Vector2d p2_landmark,
-	Vector3d p3_model,
-	bool is_landmark,
-	double xmin, double xmax, double ymin, double ymax)
-	:frame(frame),
-	p2_landmark(p2_landmark),
-	p3_model(p3_model),
-	is_landmark(is_landmark),
-	xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax)
-{}
-
-template <class T>
-bool CeresMotionError::operator()(const T* const R, const T* const tr, T* residuals) const
-{
-	for (int i = 0; i < 3; i++)
-		residuals[i] = T(0);
-
-	T p1[3];
-	for (int i = 0; i < 3; ++i) {
-		p1[i] = (T)p3_model(i);
-	}
-	T p2[3];
-	ceres::AngleAxisRotatePoint(R, p1, p2);
-	for (int i = 0; i < 3; ++i) {
-		p1[i] = p2[i] + tr[i];
-	}
-	T p3[2];
-	p3[0] = -1.0 * p1[0] / p1[2] * depth_camera.fx + depth_camera.cx;
-	p3[1] = -1.0 * p1[1] / p1[2] * depth_camera.fy + depth_camera.cy;
-	p3[2] = p1[2];
-
-	double alpha1 = 1;
-	double alpha2 = 1;
-	if (is_landmark) {
-		residuals[0] = alpha1 * (p3[0] - p2_landmark(0));
-		residuals[1] = alpha1 * (p3[1] - p2_landmark(1));
-	}
-	//std::cout << *(double*)&(p3[0]) << " " << *(double*)&(p3[1]) << "\n" << p2_landmark(0) << " " << p2_landmark(1) << "@@\n";
-	else {
-		int px = (int)*(double*)&p3[0];
-		int py = (int)*(double*)&p3[1];
-		T wx = p3[0] - (T)px;
-		T wy = p3[1] - (T)py;
-		int rx = px + 1, ry = py + 1;
-		if (rx < xmin || ry < ymin || px > xmax || py > ymax) {
-			residuals[0] = p3[0] - (xmin + xmax) / 2;
-			residuals[1] = p3[1] - (ymin + ymax) / 2;
-			return true;
-		}
-		int xs[4], ys[4];
-		xs[0] = px; ys[0] = py;
-		xs[1] = rx; ys[1] = py;
-		xs[2] = px; ys[2] = ry;
-		xs[3] = rx; ys[3] = ry;
-		T ws[4];
-		ws[0] = ((T)1. - wx) * ((T)1. - wy);
-		ws[1] = wx * ((T)1. - wy);
-		ws[2] = ((T)1. - wx) * wy;
-		ws[3] = wx * wy;
-		T d = T(0);
-		for (int i = 0; i < 4; i++) {
-			d += (double)frame.at<unsigned short>(ys[i], xs[i]) * ws[i];
-		}
-		residuals[2] = alpha2 * (p3[2] - d);
-		std::cout << *(double*)&(p3[2]) << " " << *(double*)&(d) << "\n";
-	}
-
-	/*std::cout << px << " " << py << "\n";
-	std::cout << p3_model(0) << " " << p3_model(1) << " " << p3_model(2) << "\n";
-	std::cout << *(double*)&(residuals[0]) << " " << *(double*)&(residuals[1]) << " " << *(double*)&(residuals[2]) << "\n";*/
-
-	return true;
-}
-
-ceres::CostFunction* CeresMotionError::Create(cv::Mat& frame,
-	Vector2d p2_landmark,
-	Vector3d p3_model,
-	bool is_landmark,
-	double xmin, double xmax, double ymin, double ymax)
-{
-	return (new ceres::AutoDiffCostFunction<CeresMotionError, 2 + 1, 3, 3>(
-		new CeresMotionError(frame,
-			p2_landmark,
-			p3_model,
-			is_landmark,
-			xmin, xmax, ymin, ymax)));
 }
