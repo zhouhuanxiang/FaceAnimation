@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 		Initialize();
 	}
 
-	for (frame_count_ = 14; frame_count_ <= 10000;) {
+	for (frame_count_ = 185; frame_count_ <= 10000;) {
 		LOG(INFO) << "\n\n";
 		LOG(INFO) << "frame No." << frame_count_;
 		std::cout << "# " << frame_count_ << "\n";

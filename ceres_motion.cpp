@@ -64,7 +64,7 @@ bool CeresMotionDenseError::operator()(const T* const R, const T* const tr, T* r
 		d += (double)frame.at<unsigned short>(ys[i], xs[i]) * ws[i];
 	}
 	residuals[0] = (p3[2] - d);
-	//LOG(INFO) << *(double*)&(p3[2]) << " " << *(double*)&(d) << "\n";
+	LOG(INFO) << *(double*)&(p3[2]) << " " << *(double*)&(d) << "\n";
 
 	return true;
 }

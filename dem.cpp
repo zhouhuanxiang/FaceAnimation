@@ -249,27 +249,27 @@ void UpdateMotion()
 	ceres::Solve(options1, &problem1, &summary1);
 	//std::cout << summary2.FullReport() << "\n";
 
-	//for (int i = 0; i < vertex_size; i += 25) {
-	//	CeresMotionError error = CeresMotionError(dframe_,
-	//		Vector2d(0, 0),
-	//		expression_eg_.block(3 * i, 0, 3, 1),
-	//		false,
-	//		landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax);
-	//	double residuals[3];
-	//	error(param, param + 3, residuals);
-	//	std::cout << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << " " << setw(15) << residuals[2] << "\n";
-	//}
+	for (int i = 0; i < vertex_size; i += 25) {
+		CeresMotionDenseError error = CeresMotionDenseError(dframe_,
+			Vector2d(0, 0),
+			expression_eg_.block(3 * i, 0, 3, 1),
+			landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax);
+		double residuals;
+		error(param, param + 3, &residuals);
+		//std::cout << setw(15) << residuals << "\n";
+		//LOG(INFO) << setw(15) << residuals;
+	}
 
-	//for (int i = 17; i <= 47; i++) {
-	//	CeresMotionError error = CeresMotionError(dframe_,
-	//		landmark_detector_.pts_[i],
-	//		expression_eg_.block(3 * face_landmark[i], 0, 3, 1),
-	//		true,
-	//		landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax);
-	//	double residuals[3];
-	//	error(param, param + 3, residuals);
-	//	std::cout << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << " " << setw(15) << residuals[2] << "\n";
-	//}
+	for (int i = 17; i <= 47; i++) {
+		CeresMotionLandmarkError error = CeresMotionLandmarkError(dframe_,
+			landmark_detector_.pts_[i],
+			expression_eg_.block(3 * face_landmark[i], 0, 3, 1),
+			landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax);
+		double residuals[2];
+		error(param, param + 3, residuals);
+		//std::cout << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << "\n";
+		//LOG(INFO) << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << "\n";
+	}
 
 	Ceres2Eigen(rotation_eg_, translation_eg_, param);
 	LOG(INFO) << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3);
