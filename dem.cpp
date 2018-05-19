@@ -56,7 +56,7 @@ void DEM()
 		0, -1 / depth_camera_.fy, depth_camera_.cy / depth_camera_.fy,
 		0, 0, 1;
 	//camera_extrinsic_translation_ << 0, 0, 0;
-	camera_extrinsic_translation_ << -0.05192784012425894 * 1000, -0.0004530758522097678 * 1000, 0.0007057198534333861 * 1000;
+	camera_extrinsic_translation_ << -52, 0, 0;
 	rgb_camera_project_ <<
 		-1 * rgb_camera_.fx, 0, rgb_camera_.cx,
 		0, -1 * rgb_camera_.fy, rgb_camera_.cy,
@@ -248,27 +248,27 @@ void UpdateMotion()
 	ceres::Solve(options1, &problem1, &summary1);
 	//std::cout << summary2.FullReport() << "\n";
 
-	for (int i = 0; i < vertex_size; i += 25) {
-		CeresMotionDenseError error = CeresMotionDenseError(dframe_,
-			Vector2d(0, 0),
-			expression_eg_.block(3 * i, 0, 3, 1),
-			landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax);
-		double residuals;
-		error(param, param + 3, &residuals);
-		//std::cout << setw(15) << residuals << "\n";
-		//LOG(INFO) << setw(15) << residuals;
-	}
+	//for (int i = 0; i < vertex_size; i += 25) {
+	//	CeresMotionDenseError error = CeresMotionDenseError(dframe_,
+	//		Vector2d(0, 0),
+	//		expression_eg_.block(3 * i, 0, 3, 1),
+	//		landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax);
+	//	double residuals;
+	//	error(param, param + 3, &residuals);
+	//	std::cout << setw(15) << residuals << "\n";
+	//	//LOG(INFO) << setw(15) << residuals;
+	//}
 
-	for (int i = 17; i <= 47; i++) {
-		CeresMotionLandmarkError error = CeresMotionLandmarkError(dframe_,
-			landmark_detector_.pts_[i],
-			expression_eg_.block(3 * face_landmark[i], 0, 3, 1),
-			landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax);
-		double residuals[2];
-		error(param, param + 3, residuals);
-		//std::cout << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << "\n";
-		//LOG(INFO) << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << "\n";
-	}
+	//for (int i = 27; i <= 47; i++) {
+	//	CeresMotionLandmarkError error = CeresMotionLandmarkError(dframe_,
+	//		landmark_detector_.pts_[i],
+	//		expression_eg_.block(3 * face_landmark[i], 0, 3, 1),
+	//		landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax);
+	//	double residuals[3];
+	//	error(param, param + 3, residuals);
+	//	std::cout << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << " " << setw(15) << residuals[2] << "\n";
+	//	//LOG(INFO) << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << "\n";
+	//}
 
 	Ceres2Eigen(rotation_eg_, translation_eg_, param);
 	LOG(INFO) << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3);
@@ -345,14 +345,14 @@ void Initialize()
 			param, param + 3, y_coeff_eg_.data()
 		);
 	}
-	for (int i = 0; i < vertex_size; i += 75) {
+	for (int i = 0; i < vertex_size; i += 25) {
 		problem1.AddResidualBlock(
 			CeresFaceDenseError::Create(i,
 				dframe_,
 				M_eg_, P_eg_,
 				normal_eg_,
-				1,
-				false),
+				0.05,
+				true),
 			loss_function_wrapper1,
 			param, param + 3, y_coeff_eg_.data()
 		);
@@ -370,27 +370,15 @@ void Initialize()
 	std::cout << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3) << "\n";
 	//std::cout << "Y1: " << Map<RowVectorXd>(y_coeff_eg_.data(), exp_size);
 
-	//
-	//ceres::Problem problem2;
-	//ceres::Solver::Options options2 = options1;
-	//ceres::LossFunctionWrapper* loss_function_wrapper2 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(1.0), ceres::TAKE_OWNERSHIP);
-	//for (int i = 0; i < vertex_size; i += 20) {
-	//	problem2.AddResidualBlock(
-	//		CeresFaceDenseError::Create(i,
-	//			dframe_,
-	//			M_eg_, P_eg_),
-	//		loss_function_wrapper2,
-	//		param, param + 3, y_coeff_eg_.data()
-	//	);
+	//for (int i = 17; i <= 67; i++) {
+	//	CeresLandmarkError error = CeresLandmarkError(face_landmark[i],
+	//		dframe_,
+	//		M_eg_, P_eg_,
+	//		landmark_detector_.pts_[i]);
+	//	double residuals[3];
+	//	error(param, param + 3, y_coeff_eg_.data(), residuals);
+	//	std::cout << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << setw(15) << residuals[2] << "\n";
 	//}
-	//problem2.AddResidualBlock(
-	//	CeresInitializationRegulation::Create(y_weights_eg_),
-	//	0, y_coeff_eg_.data()
-	//);
-	//ceres::Solver::Summary summary2;
-	//ceres::Solve(options2, &problem2, &summary2);
-
-	//std::cout << "Y2: " << Map<RowVectorXd>(y_coeff_eg_.data(), exp_size);
 
 	UpdateNeutralFaceCPU();
 	UpdateDeltaBlendshapeCPU();
@@ -448,6 +436,11 @@ void GenerateIcpMatrix()
 	C_track_eg_ = C;
 }
 
+void TrackCeres()
+{
+
+}
+
 void Track()
 {
 	//
@@ -472,7 +465,7 @@ void Track()
 
 void EyeTrack()
 {
-	const static double lambda1 = 5.0;
+	const static double lambda1 = 10.0;
 	const static double lambda2 = 20.0;
 	// X
 	MatrixXd X(2 * eye_landmark_size + eye_exp_size, eye_exp_size);
@@ -539,8 +532,8 @@ void EyeTrack()
 
 void MouthTrack()
 {
-	const static double lambda1 = 0.0;
-	const static double lambda2 = 300.0;
+	const static double lambda1 = 400.0;
+	const static double lambda2 = 400.0;
 	// X
 	MatrixXd X(2 * mouth_landmark_size + mouth_exp_size, mouth_exp_size);
 	X.setZero();
@@ -548,7 +541,8 @@ void MouthTrack()
 	// Y
 	MatrixXd Y(2 * mouth_landmark_size + mouth_exp_size, 1);
 	Y.setZero();
-	Y.topRows(2 * mouth_landmark_size) = C_track_eg_.bottomRows(2 * mouth_landmark_size) - A_track_eg_.bottomRows(2 * mouth_landmark_size) * neutral_eg_;
+	Y.topRows(2 * mouth_landmark_size) = C_track_eg_.bottomRows(2 * mouth_landmark_size) - 
+		A_track_eg_.bottomRows(2 * mouth_landmark_size) * neutral_eg_;
 
 	for (int i = 0; i < mouth_exp_size; i++) {
 		X(2 * mouth_landmark_size + i, i) = lambda1;
@@ -565,7 +559,7 @@ void MouthTrack()
 	}
 
 	double cost = -1;
-	for (int step = 0; step < 10; step++) {
+	for (int step = 0; step < 500; step++) {
 #pragma omp parallel for
 		for (int i = 0; i < mouth_exp_size; i++) {
 			double Si = -1 * X.col(i).dot(Y.col(0));
@@ -586,6 +580,12 @@ void MouthTrack()
 			Beta_result(i) = std::min(1.0, std::max(0.0, Beta_result(i)));
 		}
 		//
+		//if ((Beta_result - Beta).norm() < 0.1)
+		//	break;
+		//else {
+		//	Beta = Beta_result;
+		//}
+		//
 		MatrixXd res = X * Beta_result - Y;
 		double new_cost = res.squaredNorm();
 		printf("%f + %f = %f@mouth\n",
@@ -596,7 +596,7 @@ void MouthTrack()
 			cost = new_cost;
 			Beta = Beta_result;
 		}
-		else/* if(new_cost <= cost)*/ {
+		else {
 			break;
 		}
 	}

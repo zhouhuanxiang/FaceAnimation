@@ -70,9 +70,7 @@ public:
 		lcount_ = frame_count;
 
 		// update cframe (with mtx)
-		cframe_bgr_mtx_.lock();
-		cframe.copyTo(cframe_bgr_);
-		cframe_bgr_mtx_.unlock();
+		UpdateFrame(cframe);
 		// Change to dlib's image format. No memory is copied.
 		cv_image<bgr_pixel> cimg(cframe_bgr_);
 
@@ -136,6 +134,7 @@ public:
 		face_mtx_.lock();
 		r = face_;
 		face_mtx_.unlock();
+		r = drectangle(r.left() * 2, r.top() * 2, r.right() * 2, r.bottom() * 2);
 	}
 
 	void UpdateFrame(cv::Mat& frame)
@@ -147,9 +146,12 @@ public:
 
 	void ReadFrame(cv::Mat& frame)
 	{
+		cv::Mat tmp;
 		cframe_bgr_mtx_.lock();
-		frame = cframe_bgr_;
+		tmp = cframe_bgr_.clone();
+		//frame = cframe_bgr_;
 		cframe_bgr_mtx_.unlock();
+		cv::pyrDown(tmp, frame, tmp.size() / 2);
 	}
 
 public:
