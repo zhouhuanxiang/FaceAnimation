@@ -53,6 +53,9 @@
     <ClCompile Include="ceres_motion.cpp">
       <Filter>ceres</Filter>
     </ClCompile>
+    <ClCompile Include="ceres_track.cpp">
+      <Filter>ceres</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ceres_initialization.h">
@@ -89,6 +92,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ceres_motion.h">
+      <Filter>ceres</Filter>
+    </ClInclude>
+    <ClInclude Include="ceres_track.h">
       <Filter>ceres</Filter>
     </ClInclude>
   </ItemGroup>

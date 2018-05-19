@@ -438,7 +438,54 @@ void GenerateIcpMatrix()
 
 void TrackCeres()
 {
+	xxx_coeff_eg_ = xx_coeff_eg_;
+	xx_coeff_eg_ = x_coeff_eg_;
 
+	double param[6];
+	Eigen2Ceres(rotation_eg_, translation_eg_, param);
+
+	ceres::Problem problem1;
+	ceres::Solver::Options options1;
+	options1.linear_solver_type = ceres::DENSE_SCHUR;
+	options1.minimizer_progress_to_stdout = false;
+	options1.max_num_iterations = 25;
+	options1.num_threads = 4;
+	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(5.0), ceres::TAKE_OWNERSHIP);
+	CeresTrackLandmarkError::camera_extrinsic_translation = camera_extrinsic_translation_;
+
+	for (int i = 36; i <= 47; i++) {
+		problem1.AddResidualBlock(
+			CeresTrackLandmarkError::Create(dframe_, landmark_detector_.pts_[i], neutral_eg_, delta_B_eg_, face_landmark[i], param),
+			loss_function_wrapper1,
+			x_coeff_eg_.data()
+		);
+	}
+	for (int i = 48; i <= 67; i++) {
+		problem1.AddResidualBlock(
+			CeresTrackLandmarkError::Create(dframe_, landmark_detector_.pts_[i], neutral_eg_, delta_B_eg_, face_landmark[i], param),
+			loss_function_wrapper1,
+			x_coeff_eg_.data()
+		);
+	}
+
+	problem1.AddResidualBlock(
+		CeresTrackRegulation::Create(xx_coeff_eg_, xxx_coeff_eg_),
+		0,
+		x_coeff_eg_.data()
+	);
+
+	ceres::Solver::Summary summary1;
+	ceres::Solve(options1, &problem1, &summary1);
+
+	//
+	LOG(INFO) << "X: " << Map<RowVectorXd>(x_coeff_eg_.data(), exp_size);
+	// output
+	UpdateDeltaBlendshapeCPU();
+	UpdateExpressionFaceCPU();
+	std::thread t(WriteExpressionFace, frame_count_, expression_eg_, translation_eg_, rotation_eg_);
+	t.detach();
+	//
+	UpdateNormalCPU();
 }
 
 void Track()

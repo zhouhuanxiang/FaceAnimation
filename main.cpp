@@ -51,7 +51,8 @@ int main(int argc, char** argv)
 		LOG(INFO) << "frame No." << frame_count_;
 		std::cout << "# " << frame_count_ << "\n";
 		UpdateFrame();
-		Track();
+		//Track();
+		TrackCeres();
 		//Refine();
 		frame_count_ += 1;
 	}

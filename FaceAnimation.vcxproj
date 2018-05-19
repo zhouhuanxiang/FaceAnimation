@@ -168,6 +168,7 @@
     <ClCompile Include="ceres_initialization.cpp" />
     <ClCompile Include="ceres_motion.cpp" />
     <ClCompile Include="ceres_param.cpp" />
+    <ClCompile Include="ceres_track.cpp" />
     <ClCompile Include="dem.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mlibutil\mlibutil.cpp" />
@@ -177,6 +178,7 @@
     <ClInclude Include="ceres_initialization.h" />
     <ClInclude Include="ceres_motion.h" />
     <ClInclude Include="ceres_param.h" />
+    <ClInclude Include="ceres_track.h" />
     <ClInclude Include="dem.h" />
     <ClInclude Include="dlib_landmark_detector.h" />
     <ClInclude Include="dlib_face_detector.h" />

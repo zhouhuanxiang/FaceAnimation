@@ -1,26 +1,37 @@
 #include "ceres_track.h"
 
 CeresTrackDenseError::CeresTrackDenseError(cv::Mat& frame,
-	Vector2d p2_landmark,
-	Vector3d p3_model,
-	double xmin, double xmax, double ymin, double ymax)
+	double weight,
+	MatrixXd &neutral_eg,
+	MatrixXd &delta_B_eg,
+	int index,
+	double *param)
 	:frame(frame),
-	p2_landmark(p2_landmark),
-	p3_model(p3_model),
-	xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax)
+	weight(weight),
+	neutral_eg(neutral_eg),
+	delta_B_eg(delta_B_eg),
+	index(index),
+	param(param)
 {}
 
 template <class T>
-bool CeresTrackDenseError::operator()(const T* const y_coeff, T* residuals) const
+bool CeresTrackDenseError::operator()(const T* const x_coeff, T* residuals) const
 {
 	for (int i = 0; i < 1; i++)
 		residuals[i] = T(0);
 
 	T p1[3];
 	for (int i = 0; i < 3; ++i) {
-		p1[i] = (T)p3_model(i);
+		p1[i] = (T)neutral_eg(3 * index + i, 0);
+		for (int j = 0; j < exp_size; j++) {
+			p1[i] = p1[i] + x_coeff[j] * delta_B_eg(3 * index + i, j);
+		}
 	}
-	T p2[3];
+	T R[3], tr[3], p2[3];
+	for (int i = 0; i < 3; i++) {
+		R[i] = (T)param[i];
+		tr[i] = (T)param[i + 3];
+	}
 	ceres::AngleAxisRotatePoint(R, p1, p2);
 	for (int i = 0; i < 3; ++i) {
 		p1[i] = p2[i] + tr[i];
@@ -68,46 +79,61 @@ bool CeresTrackDenseError::operator()(const T* const y_coeff, T* residuals) cons
 		//std::cout << frame.at<unsigned short>(ys[i], xs[i]) << " ";
 	}
 	//std::cout << "\n";
-	residuals[0] = (p3[2] - d);
+	residuals[0] = weight * (p3[2] - d);
 
 	return true;
 }
 
 ceres::CostFunction* CeresTrackDenseError::Create(cv::Mat& frame,
-	Vector2d p2_landmark,
-	Vector3d p3_model,
-	double xmin, double xmax, double ymin, double ymax)
+	double weight,
+	MatrixXd &neutral_eg,
+	MatrixXd &delta_B_eg,
+	int index,
+	double *param)
 {
-	return (new ceres::AutoDiffCostFunction<CeresTrackDenseError, 1, 3, 3>(
+	return (new ceres::AutoDiffCostFunction<CeresTrackDenseError, 1, exp_size>(
 		new CeresTrackDenseError(frame,
-			p2_landmark,
-			p3_model,
-			xmin, xmax, ymin, ymax)));
+			weight,
+			neutral_eg,
+			delta_B_eg,
+			index,
+			param)));
 }
 
 Matrix<double, 3, 1> CeresTrackLandmarkError::camera_extrinsic_translation = Matrix<double, 3, 1>();
 
 CeresTrackLandmarkError::CeresTrackLandmarkError(cv::Mat& frame,
 	Vector2d p2_landmark,
-	Vector3d p3_model,
-	double xmin, double xmax, double ymin, double ymax)
+	MatrixXd &neutral_eg,
+	MatrixXd &delta_B_eg,
+	int index,
+	double *param)
 	:frame(frame),
 	p2_landmark(p2_landmark),
-	p3_model(p3_model),
-	xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax)
+	neutral_eg(neutral_eg),
+	delta_B_eg(delta_B_eg),
+	index(index),
+	param(param)
 {}
 
 template <class T>
-bool CeresTrackLandmarkError::operator()(const T* const y_coeff, T* residuals) const
+bool CeresTrackLandmarkError::operator()(const T* const x_coeff, T* residuals) const
 {
 	for (int i = 0; i < 2; i++)
 		residuals[i] = T(0);
 
 	T p1[3];
 	for (int i = 0; i < 3; ++i) {
-		p1[i] = (T)p3_model(i);
+		p1[i] = (T)neutral_eg(3 * index + i, 0);
+		for (int j = 0; j < exp_size; j++) {
+			p1[i] = p1[i] + x_coeff[j] * delta_B_eg(3 * index + i, j);
+		}
 	}
-	T p2[3];
+	T R[3], tr[3], p2[3];
+	for (int i = 0; i < 3; i++) {
+		R[i] = (T)param[i];
+		tr[i] = (T)param[i + 3];
+	}
 	ceres::AngleAxisRotatePoint(R, p1, p2);
 	for (int i = 0; i < 3; ++i) {
 		p1[i] = p2[i] + tr[i];
@@ -124,11 +150,11 @@ bool CeresTrackLandmarkError::operator()(const T* const y_coeff, T* residuals) c
 	T wx = p3[0] - (T)px;
 	T wy = p3[1] - (T)py;
 	int rx = px + 1, ry = py + 1;
-	//if (!(px > 0 && py > 0
-	//	&& rx < frame.cols
-	//	&& ry < frame.rows)) {
-	//	return true;
-	//}
+	if (!(px > 0 && py > 0
+		&& rx < frame.cols
+		&& ry < frame.rows)) {
+		return true;
+	}
 	int xs[4], ys[4];
 	xs[0] = px; ys[0] = py;
 	xs[1] = rx; ys[1] = py;
@@ -162,12 +188,40 @@ bool CeresTrackLandmarkError::operator()(const T* const y_coeff, T* residuals) c
 
 ceres::CostFunction* CeresTrackLandmarkError::Create(cv::Mat& frame,
 	Vector2d p2_landmark,
-	Vector3d p3_model,
-	double xmin, double xmax, double ymin, double ymax)
+	MatrixXd &neutral_eg,
+	MatrixXd &delta_B_eg,
+	int index,
+	double *param)
 {
-	return (new ceres::AutoDiffCostFunction<CeresTrackLandmarkError, 3, 3, 3>(
+	return (new ceres::AutoDiffCostFunction<CeresTrackLandmarkError, 3, exp_size>(
 		new CeresTrackLandmarkError(frame,
 			p2_landmark,
-			p3_model,
-			xmin, xmax, ymin, ymax)));
+			neutral_eg,
+			delta_B_eg,
+			index,
+			param)));
+}
+
+CeresTrackRegulation::CeresTrackRegulation(MatrixXd &xx_coeff, MatrixXd & xxx_coeff)
+	:xx_coeff(xx_coeff),
+	xxx_coeff(xxx_coeff)
+{}
+
+template <class T>
+bool CeresTrackRegulation::operator()(const T* const x_coeff, T* residuals) const
+{
+	double lamda1 = 400;
+	double lamda2 = 400;
+	for (int i = 0; i < pca_size; i++) {
+		residuals[i * 2] = lamda1 * (x_coeff[i] + xxx_coeff(i) - 2 * xx_coeff(i));
+		residuals[i * 2 + 1] = lamda2 * x_coeff[i];
+	}
+	return true;
+}
+
+ceres::CostFunction* CeresTrackRegulation::Create(MatrixXd &xx_coeff, MatrixXd & xxx_coeff)
+{
+	return (new ceres::AutoDiffCostFunction<CeresTrackRegulation, exp_size * 2, exp_size>(
+		new CeresTrackRegulation(xx_coeff,
+			xxx_coeff)));
 }

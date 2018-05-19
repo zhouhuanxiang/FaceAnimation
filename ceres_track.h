@@ -20,53 +20,79 @@ using namespace Eigen;
 class CeresTrackDenseError {
 public:
 	CeresTrackDenseError(cv::Mat& frame,
-		Vector2d p2_landmark,
-		Vector3d p3_model,
-		double xmin, double xmax, double ymin, double ymax);
+		double weight,
+		MatrixXd &neutral_eg,
+		MatrixXd &delta_B_eg,
+		int index,
+		double *param);
 
 	template <class T>
-	bool operator()(const T* const y_coeff, T* residuals) const;
+	bool operator()(const T* const x_coeff, T* residuals) const;
 
 	static ceres::CostFunction* Create(cv::Mat& frame,
-		Vector2d p2_landmark,
-		Vector3d p3_model,
-		double xmin, double xmax, double ymin, double ymax);
+		double weight,
+		MatrixXd &neutral_eg,
+		MatrixXd &delta_B_eg,
+		int index,
+		double *param);
 
 public:
 	cv::Mat& frame;
-	Vector2d p2_landmark;
-	Vector3d p3_model;
+	double weight;
 
 	DepthCameraIntrinsic depth_camera;
 
-	double xmin, xmax, ymin, ymax;
+	MatrixXd &neutral_eg;
+	MatrixXd &delta_B_eg;
+	int index;
+	double *param;
 };
 
 class CeresTrackLandmarkError {
 public:
 	CeresTrackLandmarkError(cv::Mat& frame,
 		Vector2d p2_landmark,
-		Vector3d p3_model,
-		double xmin, double xmax, double ymin, double ymax);
+		MatrixXd &neutral_eg,
+		MatrixXd &delta_B_eg,
+		int index,
+		double *param);
 
 	template <class T>
-	bool operator()(const T* const y_coeff, T* residuals) const;
+	bool operator()(const T* const x_coeff, T* residuals) const;
 
 	static ceres::CostFunction* Create(cv::Mat& frame,
 		Vector2d p2_landmark,
-		Vector3d p3_model,
-		double xmin, double xmax, double ymin, double ymax);
+		MatrixXd &neutral_eg,
+		MatrixXd &delta_B_eg,
+		int index,
+		double *param);
 
 public:
 	cv::Mat& frame;
 	Vector2d p2_landmark;
-	Vector3d p3_model;
 
 	DepthCameraIntrinsic depth_camera;
 	RgbCameraIntrinsic rgb_camera;
 	static Matrix<double, 3, 1> camera_extrinsic_translation;
 
-	double xmin, xmax, ymin, ymax;
+	MatrixXd &neutral_eg;
+	MatrixXd &delta_B_eg;
+	int index;
+	double *param;
+};
+
+class CeresTrackRegulation
+{
+public:
+	CeresTrackRegulation(MatrixXd &xx_coeff, MatrixXd & xxx_coeff);
+
+	template <class T>
+	bool operator()(const T* const x_coeff, T* residuals) const;
+
+	static ceres::CostFunction* Create(MatrixXd &xx_coeff, MatrixXd & xxx_coeff);
+private:
+	MatrixXd &xx_coeff, p;
+	MatrixXd & xxx_coeff;
 };
 
 #endif // !CERES_TRACK_H_

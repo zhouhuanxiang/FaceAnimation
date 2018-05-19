@@ -3,6 +3,7 @@
 
 #include "ceres_param.h"
 #include "ceres_initialization.h"
+#include "ceres_track.h"
 #include "ceres_motion.h"
 #include "model_reader.h"
 #include "image_reader_kinect.h"
@@ -81,6 +82,8 @@ Vector3d ProjectionDepth(Vector3d p3);
 Vector3d ProjectionRgb(Vector3d p3);
 
 void Initialize();
+
+void TrackCeres();
 
 void Track();
 void EyeTrack();
