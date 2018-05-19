@@ -55,8 +55,8 @@ void DEM()
 		-1 / depth_camera_.fx, 0, depth_camera_.cx / depth_camera_.fx,
 		0, -1 / depth_camera_.fy, depth_camera_.cy / depth_camera_.fy,
 		0, 0, 1;
-	camera_extrinsic_translation_ <<
-		-0.05192784012425894, -0.0004530758522097678, 0.0007057198534333861;
+	//camera_extrinsic_translation_ << 0, 0, 0;
+	camera_extrinsic_translation_ << -0.05192784012425894 * 1000, -0.0004530758522097678 * 1000, 0.0007057198534333861 * 1000;
 	rgb_camera_project_ <<
 		-1 * rgb_camera_.fx, 0, rgb_camera_.cx,
 		0, -1 * rgb_camera_.fy, rgb_camera_.cy,
@@ -218,7 +218,6 @@ void UpdateMotion()
 	options1.max_num_iterations = 500;
 	options1.num_threads = 16;
 	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::HuberLoss(1.0), ceres::TAKE_OWNERSHIP);
-	CeresMotionDenseError::camera_extrinsic_translation = camera_extrinsic_translation_;
 	CeresMotionLandmarkError::camera_extrinsic_translation = camera_extrinsic_translation_;
 
 	for (int i = 17; i <= 47; i++) {
@@ -279,24 +278,20 @@ void UpdateMotion()
 bool UpdateFrame()
 {
 	static ImageReaderKinect image_reader(Kinect_Data_Dir);
-	image_reader.GetFrame(frame_count_, cframe_, dframe_);
-	LOG(INFO) << "gauss blur";
+	image_reader.GetFrame(frame_count_, cframe_, dframe_); 
+	//LOG(INFO) << "gauss blur";
 	//cv::GaussianBlur(dframe_, dframe_, cv::Size(3, 3), 0);
 	landmark_detector_.Detect(cframe_, frame_count_, false);
+	//return true;
 
 	LOG(INFO) << "rigid motion";
 	//SolvePnP();
 	//WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
-
-	/*translation_eg_ = Vector3d(0, 0, 500);
-	if (!SVD()) {
-		WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
-		return false;
-	}*/
-	//translation_eg_ += Vector3d(0, 0, -20);
+	//if (!SVD()) {
+	//	WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
+	//	return false;
+	//}
 	//WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
-
-	//rotation_eg_.setIdentity();
 	UpdateMotion();
 	//WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
 
@@ -423,13 +418,13 @@ void GenerateIcpMatrix()
 		//Vector3d p3_landmark = ReprojectionDepth(p2_landmark, dframe_.at<unsigned short>(p2_landmark(1), p2_landmark(0)));
 		int index = face_landmark[lm_index];
 		Vector3d p3_model = expression_eg_.block(3 * index, 0, 3, 1);
-		Vector3d p3_model_now = rotation_eg_ * p3_model + translation_eg_;
+		Vector3d p3_model_now = rotation_eg_ * p3_model + translation_eg_ + camera_extrinsic_translation_;
 		Vector3d n3_model = normal_eg_.col(index);
 
 		// 2d landmark displacement
 		{
-			MatrixXd lhs = alpha1 * (depth_camera_project_.topRows(2) * rotation_eg_ / p3_model_now(2));
-			MatrixXd rhs = alpha1 * (p2_landmark - depth_camera_project_.topRows(2) * translation_eg_ / p3_model_now(2));
+			MatrixXd lhs = alpha1 * (rgb_camera_project_.topRows(2) * rotation_eg_ / p3_model_now(2));
+			MatrixXd rhs = alpha1 * (p2_landmark - rgb_camera_project_.topRows(2) * (translation_eg_ + camera_extrinsic_translation_) / p3_model_now(2));
 			if ((lhs * p3_model - rhs).squaredNorm() < 8 || true) {
 				for (int i = 0; i < 2; i++) {
 					for (int j = 0; j < 3; j++) {
@@ -455,33 +450,46 @@ void GenerateIcpMatrix()
 
 void Track()
 {
-	const static double lambda1 = 0;
-	const static double lambda2 = 20.0;
 	//
 	xxx_coeff_eg_ = xx_coeff_eg_;
 	xx_coeff_eg_ = x_coeff_eg_;
 	// generate A C
 	GenerateIcpMatrix();
+	//
+	EyeTrack();
+	//
+	MouthTrack();
+	//
+	LOG(INFO) << "X: " << Map<RowVectorXd>(x_coeff_eg_.data(), exp_size);
+	// output
+	UpdateDeltaBlendshapeCPU();
+	UpdateExpressionFaceCPU();
+	std::thread t(WriteExpressionFace, frame_count_, expression_eg_, translation_eg_, rotation_eg_);
+	t.detach();
+	//
+	UpdateNormalCPU();
+}
+
+void EyeTrack()
+{
+	const static double lambda1 = 5.0;
+	const static double lambda2 = 20.0;
 	// X
-	MatrixXd X(6 * eye_landmark_size + eye_exp_size, eye_exp_size);
+	MatrixXd X(2 * eye_landmark_size + eye_exp_size, eye_exp_size);
 	X.setZero();
-	X.topRows(6 * eye_landmark_size) = A_track_eg_.topRows(6 * eye_landmark_size) * delta_B_eg_.leftCols(eye_exp_size);
+	X.topRows(2 * eye_landmark_size) = A_track_eg_.topRows(2 * eye_landmark_size) * delta_B_eg_.leftCols(eye_exp_size);
 	// Y
-	MatrixXd Y(6 * eye_landmark_size + eye_exp_size, 1);
+	MatrixXd Y(2 * eye_landmark_size + eye_exp_size, 1);
 	Y.setZero();
-	Y.topRows(6 * eye_landmark_size) = C_track_eg_.topRows(6 * eye_landmark_size) - A_track_eg_.topRows(6 * eye_landmark_size) * neutral_eg_;
+	Y.topRows(2 * eye_landmark_size) = C_track_eg_.topRows(2 * eye_landmark_size) - A_track_eg_.topRows(2 * eye_landmark_size) * neutral_eg_;
 
 	for (int i = 0; i < eye_exp_size; i++) {
-		X(6 * eye_landmark_size + i, i) = lambda1;
-		Y(6 * eye_landmark_size + i, 0) = lambda1 * (2 * xx_coeff_eg_(i) - xxx_coeff_eg_(i));
+		X(2 * eye_landmark_size + i, i) = lambda1;
+		Y(2 * eye_landmark_size + i, 0) = lambda1 * (2 * xx_coeff_eg_(i) - xxx_coeff_eg_(i));
 	}
 	// Beta
-	//x_coeff_eg_.setZero();
-
 	VectorXd Beta, Beta_result;
 	Beta = Beta_result = x_coeff_eg_.topRows(eye_exp_size);
-
-	//std::cout << X * Beta - Y << "\n";
 
 	// (X_j) * (X_j)
 	std::vector<double> Xs(eye_exp_size);
@@ -512,10 +520,10 @@ void Track()
 		}
 		//
 		MatrixXd res = X * Beta_result - Y;
-		double new_cost = res.norm();
-		printf("%f + %f = %f\n",
-			res.topRows(6 * eye_landmark_size).norm(),
-			res.bottomRows(eye_exp_size).norm(),
+		double new_cost = res.squaredNorm();
+		printf("%f + %f = %f@eye\n",
+			res.topRows(2 * eye_landmark_size).squaredNorm(),
+			res.bottomRows(eye_exp_size).squaredNorm(),
 			new_cost);
 		if ((cost - new_cost) > 0.00001 * cost || cost < 0) {
 			cost = new_cost;
@@ -527,15 +535,73 @@ void Track()
 	}
 	//
 	x_coeff_eg_.topRows(eye_exp_size) = Beta;
-	LOG(INFO) << "X: " << Map<RowVectorXd>(x_coeff_eg_.data(), exp_size);
+}
 
-	// output
-	UpdateDeltaBlendshapeCPU();
-	UpdateExpressionFaceCPU();
-	std::thread t(WriteExpressionFace, frame_count_, expression_eg_, translation_eg_, rotation_eg_);
-	t.detach();
+void MouthTrack()
+{
+	const static double lambda1 = 0.0;
+	const static double lambda2 = 300.0;
+	// X
+	MatrixXd X(2 * mouth_landmark_size + mouth_exp_size, mouth_exp_size);
+	X.setZero();
+	X.topRows(2 * mouth_landmark_size) = A_track_eg_.bottomRows(2 * mouth_landmark_size) * delta_B_eg_.rightCols(mouth_exp_size);
+	// Y
+	MatrixXd Y(2 * mouth_landmark_size + mouth_exp_size, 1);
+	Y.setZero();
+	Y.topRows(2 * mouth_landmark_size) = C_track_eg_.bottomRows(2 * mouth_landmark_size) - A_track_eg_.bottomRows(2 * mouth_landmark_size) * neutral_eg_;
+
+	for (int i = 0; i < mouth_exp_size; i++) {
+		X(2 * mouth_landmark_size + i, i) = lambda1;
+		Y(2 * mouth_landmark_size + i, 0) = lambda1 * (2 * xx_coeff_eg_(i + eye_exp_size) - xxx_coeff_eg_(i + eye_exp_size));
+	}
+	// Beta
+	VectorXd Beta, Beta_result;
+	Beta = Beta_result = x_coeff_eg_.bottomRows(mouth_exp_size);
+
+	// (X_j) * (X_j)
+	std::vector<double> Xs(mouth_exp_size);
+	for (int i = 0; i < mouth_exp_size; i++) {
+		Xs[i] = X.col(i).dot(X.col(i));
+	}
+
+	double cost = -1;
+	for (int step = 0; step < 10; step++) {
+#pragma omp parallel for
+		for (int i = 0; i < mouth_exp_size; i++) {
+			double Si = -1 * X.col(i).dot(Y.col(0));
+			for (int j = 0; j < mouth_exp_size; j++) {
+				if (i == j)
+					continue;
+				Si += X.col(i).dot(X.col(j)) * Beta(j);
+			}
+			if (Si > lambda2) {
+				Beta_result(i) = (lambda2 - Si) / Xs[i];
+			}
+			else if (Si < -1 * lambda2) {
+				Beta_result(i) = (-1 * lambda2 - Si) / Xs[i];
+			}
+			else {
+				Beta_result(i) = 0;
+			}
+			Beta_result(i) = std::min(1.0, std::max(0.0, Beta_result(i)));
+		}
+		//
+		MatrixXd res = X * Beta_result - Y;
+		double new_cost = res.squaredNorm();
+		printf("%f + %f = %f@mouth\n",
+			res.topRows(2 * mouth_landmark_size).squaredNorm(),
+			res.bottomRows(mouth_exp_size).squaredNorm(),
+			new_cost);
+		if ((cost - new_cost) > 0.00001 * cost || cost < 0) {
+			cost = new_cost;
+			Beta = Beta_result;
+		}
+		else/* if(new_cost <= cost)*/ {
+			break;
+		}
+	}
 	//
-	UpdateNormalCPU();
+	x_coeff_eg_.bottomRows(mouth_exp_size) = Beta;
 }
 
 void UpdateNeutralFaceCPU()
@@ -619,11 +685,18 @@ void WriteExpressionFace(int count, MatrixXd tmesh, Vector3d translation_eg, Mat
 void WritePointCloud()
 {
 	ml::MeshDatad tmp;
+
+	landmark_detector_.xmax = dframe_.cols;
+	landmark_detector_.ymax = dframe_.rows;
+	landmark_detector_.xmin = 0;
+	landmark_detector_.ymin = 0;
+
 	int width = landmark_detector_.xmax - landmark_detector_.xmin;
 	int height = landmark_detector_.ymax - landmark_detector_.ymin;
-	tmp.m_Vertices.resize(width * height);
+	tmp.m_Vertices.resize(width * height, ml::vec3d(0, 0, 1000));
 	tmp.m_Colors.resize(width * height);
 	for (int i = landmark_detector_.ymin; i < landmark_detector_.ymax; i++) {
+#pragma omp parallel for
 		for (int j = landmark_detector_.xmin; j < landmark_detector_.xmax; j++) {
 			int depth = dframe_.at<unsigned short>(i, j);
 			if (depth > 2000)
@@ -632,11 +705,13 @@ void WritePointCloud()
 			tmp.m_Vertices[(i - landmark_detector_.ymin) * width + j - landmark_detector_.xmin] = ml::vec3d(p3.data());
 		}
 	}
-	for (int f = 17; f < face_landmark_size; f++) {
-		Vector2d& p2 = landmark_detector_.pts_[f];
-		tmp.m_Colors[(p2.y() - landmark_detector_.ymin) * width + p2.x() - landmark_detector_.xmin] = ml::vec4d((f + 130.0) / 200, 0, 0, 1);
-	}
+	//for (int f = 17; f < face_landmark_size; f++) {
+	//	Vector2d& p2 = landmark_detector_.pts_[f];
+	//	tmp.m_Colors[(p2.y() - landmark_detector_.ymin) * width + p2.x() - landmark_detector_.xmin] = ml::vec4d((f + 130.0) / 200, 0, 0, 1);
+	//}
 	char str[20];
 	sprintf(str, "%d/pcl.obj", frame_count_);
 	ml::MeshIOd::saveToOBJ(Test_Output_Dir + str, tmp);
+	//std::thread t(ml::MeshIOd::saveToOBJ, Test_Output_Dir + str, tmp);
+	//t.detach();
 }

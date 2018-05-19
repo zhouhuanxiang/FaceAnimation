@@ -83,6 +83,8 @@ Vector3d ProjectionRgb(Vector3d p3);
 void Initialize();
 
 void Track();
+void EyeTrack();
+void MouthTrack();
 
 void UpdateNeutralFaceCPU();
 

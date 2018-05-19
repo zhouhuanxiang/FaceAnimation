@@ -26,14 +26,19 @@ int main(int argc, char** argv)
 
 	DEM();
 
-	//for (frame_count_ = 0; frame_count_ < 500; frame_count_++) {
+	//for (frame_count_ = 25; frame_count_ < 370; frame_count_++) {
+	//	UpdateFrame();
+	//}
+
+	//for (frame_count_ = 80; frame_count_ < 500; frame_count_++) {
 	//	std::cout << frame_count_ << "\n";
 	//	UpdateFrame();
 	//	WritePointCloud();
 	//}
 	//return 0;
 
-	for (frame_count_ = 12; frame_count_ <= 14; frame_count_++) {
+	int base = 25;
+	for (frame_count_ = base; frame_count_ <= base + 5; frame_count_++) {
 		LOG(INFO) << "\n\n";
 		LOG(INFO) << "frame No." << frame_count_;
 		std::cout << "# " << frame_count_ << "\n";
@@ -41,14 +46,13 @@ int main(int argc, char** argv)
 		Initialize();
 	}
 
-	for (frame_count_ = 185; frame_count_ <= 10000;) {
+	for (frame_count_ = base + 5; frame_count_ <= base + 10000;) {
 		LOG(INFO) << "\n\n";
 		LOG(INFO) << "frame No." << frame_count_;
 		std::cout << "# " << frame_count_ << "\n";
 		UpdateFrame();
 		Track();
 		//Refine();
-
 		frame_count_ += 1;
 	}
 

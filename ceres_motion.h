@@ -38,8 +38,6 @@ public:
 	Vector3d p3_model;
 
 	DepthCameraIntrinsic depth_camera;
-	RgbCameraIntrinsic rgb_camera;
-	static Matrix<double, 3, 1> camera_extrinsic_translation;
 
 	double xmin, xmax, ymin, ymax;
 };

@@ -18,6 +18,11 @@ struct DepthCameraIntrinsic
 
 struct RgbCameraIntrinsic
 {
+	//double fx = 365.427002;
+	//double fy = 365.427002;
+	//double cx = 255.713501;
+	//double cy = 208.248596;
+
 	double fx = 1081.37;
 	double fy = 1081.37;
 	double cx = 959.5;

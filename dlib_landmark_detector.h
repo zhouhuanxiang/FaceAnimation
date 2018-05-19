@@ -90,15 +90,16 @@ public:
 
 		cv::Mat cframe_bgr_face = cframe_bgr_(cv::Rect(face_local.left(), face_local.top(), face_local.width(), face_local.height())).clone();
 
-		cv::Mat tmp;
-		cv::pyrUp(cframe_bgr_face, tmp, cframe_bgr_face.size() * 2);
-		cv::pyrUp(tmp, cframe_bgr_face, tmp.size() * 2);
+		double alpha = 1;
+		//cv::Mat tmp;
+		//cv::pyrUp(cframe_bgr_face, tmp, cframe_bgr_face.size() * 2);
+		//cv::pyrUp(tmp, cframe_bgr_face, tmp.size() * 2);
 
-		rectangle face_local_new = rectangle(0, 0, face_local.width() * 4, face_local.height() * 4);
+		rectangle face_local_new = rectangle(0, 0, face_local.width() * alpha, face_local.height() * alpha);
 		cv_image<bgr_pixel> cimg_new(cframe_bgr_face);
 		full_object_detection shape = shape_predictor_(cimg_new, face_local_new);
 		for (int i = 0; i < shape.num_parts(); i++) {
-			pts_[i] = Eigen::Vector2d(shape.part(i).x() / 4 + face_local.left(), shape.part(i).y() / 4 + face_local.top()) ;
+			pts_[i] = Eigen::Vector2d(shape.part(i).x() / alpha + face_local.left(), shape.part(i).y() / alpha + face_local.top()) ;
 		}
 
 		//full_object_detection shape = shape_predictor_(cimg, face_local);

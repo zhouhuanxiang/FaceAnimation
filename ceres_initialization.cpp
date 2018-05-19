@@ -32,7 +32,7 @@ bool CeresFaceDenseError::operator()(const T* const R, const T* const tr, const 
 		p1[i] = p2[i] + tr[i];
 	}
 	//
-	T p3[2];
+	T p3[3];
 	p3[0] = -1.0 * p1[0] / p1[2] * depth_camera.fx + depth_camera.cx;
 	p3[1] = -1.0 * p1[1] / p1[2] * depth_camera.fy + depth_camera.cy;
 	p3[2] = p1[2];
@@ -124,11 +124,11 @@ bool CeresLandmarkError::operator()(const T* const R, const T* const tr, const T
 	T p2[3];
 	ceres::AngleAxisRotatePoint(R, p1, p2);
 	for (int i = 0; i < 3; ++i) {
-		p1[i] = p2[i] + tr[i];
+		p1[i] = p2[i] + tr[i] + camera_extrinsic_translation(i);
 	}
-	T p3[2];
-	p3[0] = -1.0 * p1[0] / p1[2] * depth_camera.fx + depth_camera.cx;
-	p3[1] = -1.0 * p1[1] / p1[2] * depth_camera.fy + depth_camera.cy;
+	T p3[3];
+	p3[0] = -1.0 * p1[0] / p1[2] * rgb_camera.fx + rgb_camera.cx;
+	p3[1] = -1.0 * p1[1] / p1[2] * rgb_camera.fy + rgb_camera.cy;
 	p3[2] = p1[2];
 	
 	double alpha1 = 1;
@@ -188,7 +188,7 @@ template <class T>
 bool CeresInitializationRegulation::operator()(const T* const pca_coeff, T* residuals) const
 {
 	for (int i = 0; i < pca_size; i++){
-		residuals[i] = ((T)pca_coeff[i]) * pca_weights(i) * 35.0;
+		residuals[i] = ((T)pca_coeff[i]) * pca_weights(i) * 75.0;
 		//std::cout << residuals[i] << "\n";
 	}
 	//std::cout << "\n";
