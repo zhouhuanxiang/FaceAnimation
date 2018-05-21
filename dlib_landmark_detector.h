@@ -65,7 +65,7 @@ public:
 		cv::waitKey(0);
 	}
 
-	bool Detect(cv::Mat cframe, int frame_count, bool debug = false)
+	bool Detect(cv::Mat &cframe, int frame_count, bool debug = false)
 	{
 		lcount_ = frame_count;
 
@@ -86,7 +86,7 @@ public:
 		//face_local = detector_(cimg)[0];
 		//
 
-		cv::Mat cframe_bgr_face = cframe_bgr_(cv::Rect(face_local.left(), face_local.top(), face_local.width(), face_local.height())).clone();
+		cv::Mat cframe_bgr_face = cframe_bgr_(cv::Rect(face_local.left(), face_local.top(), face_local.width(), face_local.height()));
 
 		double alpha = 1;
 		//cv::Mat tmp;
@@ -134,7 +134,7 @@ public:
 		face_mtx_.lock();
 		r = face_;
 		face_mtx_.unlock();
-		r = drectangle(r.left() * 2, r.top() * 2, r.right() * 2, r.bottom() * 2);
+		r = drectangle(r.left() * 4, r.top() * 4, r.right() * 4, r.bottom() * 4);
 	}
 
 	void UpdateFrame(cv::Mat& frame)
@@ -148,10 +148,10 @@ public:
 	{
 		cv::Mat tmp;
 		cframe_bgr_mtx_.lock();
-		tmp = cframe_bgr_.clone();
-		//frame = cframe_bgr_;
+		frame = cframe_bgr_.clone();
 		cframe_bgr_mtx_.unlock();
-		cv::pyrDown(tmp, frame, tmp.size() / 2);
+		cv::pyrDown(frame, tmp, cframe_bgr_.size() / 2);
+		cv::pyrDown(tmp, frame, cframe_bgr_.size() / 4);
 	}
 
 public:

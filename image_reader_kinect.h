@@ -12,6 +12,7 @@
 
 #include "parameters.h"
 
+#include <vector>
 using namespace std;
 
 class ImageReaderKinect
@@ -20,31 +21,31 @@ public:
 	ImageReaderKinect(string p)
 	{
 		path = p;
+		
+		dframes.resize(frame_count_end, cv::Mat(1080, 1920, CV_8UC3));
+		cframes.resize(frame_count_end, cv::Mat(512, 424, CV_16UC3));
+#pragma omp parallel for
+		for (int i = 0; i < frame_count_end; i++) {
+			char str[20];
+			sprintf(str, "c%d.png", i);
+			cframes[i] = cv::imread(path + str/*, cv::IMREAD_UNCHANGED*/);
+			//cv::imshow("infrared", cframes[i]);
+			//cv::waitKey(0);
+			sprintf(str, "d%d.png", i);
+			dframes[i] = cv::imread(path + str, cv::IMREAD_UNCHANGED);
+		}
 	}
 
 	void GetFrame(int idx, cv::Mat& cframe, cv::Mat& dframe)
 	{
 		LOG(INFO) << "read image (I/O)";
-
-		cv::Mat tmp;
-
-		char str[20];
-		if (USE_KINECT){
-			sprintf(str, "c%d.png", idx);
-			cframe = cv::imread(path + str/*, cv::IMREAD_UNCHANGED*/);
-			//cv::pyrUp(cframe, tmp, cframe.size() * 2);
-			//cv::pyrUp(tmp, cframe, tmp.size() * 2);
-		}
-		//cv::imshow("infrared", iframe);
-		//cv::waitKey(0);
-
-		sprintf(str, "d%d.png", idx);
-		dframe = cv::imread(path + str, cv::IMREAD_UNCHANGED);
-		//cv::pyrUp(dframe, tmp, dframe.size() * 2);
-		//cv::pyrUp(tmp, dframe, tmp.size() * 2);
+		cframe = cframes[idx];
+		dframe = dframes[idx];
 	}
 private:
 	string path;
+	std::vector<cv::Mat> dframes;
+	std::vector<cv::Mat> cframes;
 };
 
 #endif 

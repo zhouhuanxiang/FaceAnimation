@@ -46,17 +46,17 @@ int main(int argc, char** argv)
 		Initialize();
 	}
 
-	for (frame_count_ = base + 5; frame_count_ <= base + 10000;) {
+	for (frame_count_ = base + 5; frame_count_ < frame_count_end;) {
 		LOG(INFO) << "\n\n";
 		LOG(INFO) << "frame No." << frame_count_;
 		std::cout << "# " << frame_count_ << "\n";
 		UpdateFrame();
-		//Track();
-		TrackCeres();
+		Track();
+		//TrackCeres();
 		//Refine();
 		frame_count_ += 1;
 	}
 
-	system("pause");
+	//system("pause");
 	return 0;
 }

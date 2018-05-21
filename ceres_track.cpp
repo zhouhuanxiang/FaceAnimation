@@ -104,29 +104,27 @@ Matrix<double, 3, 1> CeresTrackLandmarkError::camera_extrinsic_translation = Mat
 
 CeresTrackLandmarkError::CeresTrackLandmarkError(cv::Mat& frame,
 	Vector2d p2_landmark,
-	MatrixXd &neutral_eg,
-	MatrixXd &delta_B_eg,
-	int index,
+	Block<MatrixXd> neutral_eg_block,
+	Block<MatrixXd> delta_B_eg_block,
 	double *param)
 	:frame(frame),
 	p2_landmark(p2_landmark),
-	neutral_eg(neutral_eg),
-	delta_B_eg(delta_B_eg),
-	index(index),
+	neutral_eg_block(neutral_eg_block),
+	delta_B_eg_block(delta_B_eg_block),
 	param(param)
 {}
 
 template <class T>
 bool CeresTrackLandmarkError::operator()(const T* const x_coeff, T* residuals) const
-{
-	for (int i = 0; i < 2; i++)
+{	
+	for (int i = 0; i < 3; i++)
 		residuals[i] = T(0);
 
 	T p1[3];
 	for (int i = 0; i < 3; ++i) {
-		p1[i] = (T)neutral_eg(3 * index + i, 0);
+		p1[i] = (T)neutral_eg_block(i, 0);
 		for (int j = 0; j < exp_size; j++) {
-			p1[i] = p1[i] + x_coeff[j] * delta_B_eg(3 * index + i, j);
+			p1[i] = p1[i] + x_coeff[j] * delta_B_eg_block(i, j);
 		}
 	}
 	T R[3], tr[3], p2[3];
@@ -139,7 +137,7 @@ bool CeresTrackLandmarkError::operator()(const T* const x_coeff, T* residuals) c
 		p1[i] = p2[i] + tr[i];
 	}
 	T p3[3];
-	double alpha1 = 0.2;
+	double alpha1 = 0.0;
 	double alpha2 = 1;
 
 	p3[0] = -1.0 * p1[0] / p1[2] * depth_camera.fx + depth_camera.cx;
@@ -188,17 +186,15 @@ bool CeresTrackLandmarkError::operator()(const T* const x_coeff, T* residuals) c
 
 ceres::CostFunction* CeresTrackLandmarkError::Create(cv::Mat& frame,
 	Vector2d p2_landmark,
-	MatrixXd &neutral_eg,
-	MatrixXd &delta_B_eg,
-	int index,
+	Block<MatrixXd> neutral_eg_block,
+	Block<MatrixXd> delta_B_eg_block,
 	double *param)
 {
 	return (new ceres::AutoDiffCostFunction<CeresTrackLandmarkError, 3, exp_size>(
 		new CeresTrackLandmarkError(frame,
 			p2_landmark,
-			neutral_eg,
-			delta_B_eg,
-			index,
+			neutral_eg_block,
+			delta_B_eg_block,
 			param)));
 }
 
@@ -210,11 +206,24 @@ CeresTrackRegulation::CeresTrackRegulation(MatrixXd &xx_coeff, MatrixXd & xxx_co
 template <class T>
 bool CeresTrackRegulation::operator()(const T* const x_coeff, T* residuals) const
 {
-	double lamda1 = 400;
-	double lamda2 = 400;
-	for (int i = 0; i < pca_size; i++) {
-		residuals[i * 2] = lamda1 * (x_coeff[i] + xxx_coeff(i) - 2 * xx_coeff(i));
-		residuals[i * 2 + 1] = lamda2 * x_coeff[i];
+	double lamda1 = 0.05;
+	double lamda2 = 0.25;
+
+	for (int i = 0; i < 2 * exp_size; i++)
+		residuals[i] = T(0);
+
+	for (int i = 0; i < exp_size; i++) {
+		double value = *(double*)&(x_coeff[i]);
+		if (value < -1)
+			residuals[i * 2] = 10000.0 * (-1.0 - x_coeff[i]);
+		//if (value < DBL_MIN * -1)
+		//	residuals[i * 2] = 10000.0 * (0.0 - x_coeff[i]);
+		else if (value > 1)
+			residuals[i * 2] = 10000.0 * (x_coeff[i] - 1.0);
+		else {
+			residuals[i * 2] = lamda1 * (x_coeff[i] + xxx_coeff(i) - 2 * xx_coeff(i));
+			residuals[i * 2 + 1] = lamda2 * x_coeff[i];
+		}
 	}
 	return true;
 }

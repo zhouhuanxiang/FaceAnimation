@@ -86,6 +86,7 @@ void Initialize();
 void TrackCeres();
 
 void Track();
+void EyeMouthTrack();
 void EyeTrack();
 void MouthTrack();
 

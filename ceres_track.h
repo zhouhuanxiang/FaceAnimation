@@ -52,9 +52,8 @@ class CeresTrackLandmarkError {
 public:
 	CeresTrackLandmarkError(cv::Mat& frame,
 		Vector2d p2_landmark,
-		MatrixXd &neutral_eg,
-		MatrixXd &delta_B_eg,
-		int index,
+		Block<MatrixXd> neutral_eg_block,
+		Block<MatrixXd> delta_B_eg_block,
 		double *param);
 
 	template <class T>
@@ -62,9 +61,8 @@ public:
 
 	static ceres::CostFunction* Create(cv::Mat& frame,
 		Vector2d p2_landmark,
-		MatrixXd &neutral_eg,
-		MatrixXd &delta_B_eg,
-		int index,
+		Block<MatrixXd> neutral_eg_block,
+		Block<MatrixXd> delta_B_eg_block,
 		double *param);
 
 public:
@@ -75,9 +73,10 @@ public:
 	RgbCameraIntrinsic rgb_camera;
 	static Matrix<double, 3, 1> camera_extrinsic_translation;
 
-	MatrixXd &neutral_eg;
-	MatrixXd &delta_B_eg;
-	int index;
+	MatrixXd neutral_eg_block;
+	MatrixXd delta_B_eg_block;
+	//Block<MatrixXd> neutral_eg_block;
+	//Block<MatrixXd> delta_B_eg_block;
 	double *param;
 };
 

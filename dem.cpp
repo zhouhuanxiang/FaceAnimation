@@ -65,6 +65,7 @@ void DEM()
 	frame_count_ = 0;
 	//
 	ModelReader mr(M_eg_, P_eg_, delta_B1_eg_, delta_B2_eg_);
+	delta_B_eg_.resize(3 * vertex_size, exp_size);
 	//
 	rotation_cv_ = cv::Mat(3, 1, CV_64FC1);
 	translation_cv_ = cv::Mat(3, 1, CV_64FC1);
@@ -213,14 +214,14 @@ void UpdateMotion()
 
 	ceres::Problem problem1;
 	ceres::Solver::Options options1;
-	options1.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY;
+	options1.linear_solver_type = ceres::DENSE_QR;
 	options1.minimizer_progress_to_stdout = false;
 	options1.max_num_iterations = 500;
 	options1.num_threads = 16;
 	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::HuberLoss(1.0), ceres::TAKE_OWNERSHIP);
 	CeresMotionLandmarkError::camera_extrinsic_translation = camera_extrinsic_translation_;
 
-	for (int i = 17; i <= 47; i++) {
+	for (int i = 27; i <= 47; i++) {
 		problem1.AddResidualBlock(
 			CeresMotionLandmarkError::Create(dframe_,
 				landmark_detector_.pts_[i],
@@ -231,22 +232,22 @@ void UpdateMotion()
 		);
 	}
 
+	LOG(INFO) << "start solve";
 	ceres::Solver::Summary summary1;
 	ceres::Solve(options1, &problem1, &summary1);
 
-	ceres::Problem problem2;
-	for (int i = 0; i < vertex_size; i += 25) {
-		problem1.AddResidualBlock(
-			CeresMotionDenseError::Create(dframe_,
-				Vector2d(0, 0),
-				expression_eg_.block(3 * i, 0, 3, 1),
-				landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax),
-			0,
-			param, param + 3
-		);
-	}
-	ceres::Solve(options1, &problem1, &summary1);
-	//std::cout << summary2.FullReport() << "\n";
+	//ceres::Problem problem2;
+	//for (int i = 0; i < vertex_size; i += 25) {
+	//	problem1.AddResidualBlock(
+	//		CeresMotionDenseError::Create(dframe_,
+	//			Vector2d(0, 0),
+	//			expression_eg_.block(3 * i, 0, 3, 1),
+	//			landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax),
+	//		0,
+	//		param, param + 3
+	//	);
+	//}
+	//ceres::Solve(options1, &problem1, &summary1);
 
 	//for (int i = 0; i < vertex_size; i += 25) {
 	//	CeresMotionDenseError error = CeresMotionDenseError(dframe_,
@@ -446,24 +447,34 @@ void TrackCeres()
 
 	ceres::Problem problem1;
 	ceres::Solver::Options options1;
-	options1.linear_solver_type = ceres::DENSE_SCHUR;
+	options1.linear_solver_type = ceres::DENSE_QR;
 	options1.minimizer_progress_to_stdout = false;
 	options1.max_num_iterations = 25;
-	options1.num_threads = 4;
+	options1.num_threads = 16;
 	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(5.0), ceres::TAKE_OWNERSHIP);
 	CeresTrackLandmarkError::camera_extrinsic_translation = camera_extrinsic_translation_;
 
 	for (int i = 36; i <= 47; i++) {
+		int index = face_landmark[i];
 		problem1.AddResidualBlock(
-			CeresTrackLandmarkError::Create(dframe_, landmark_detector_.pts_[i], neutral_eg_, delta_B_eg_, face_landmark[i], param),
-			loss_function_wrapper1,
+			CeresTrackLandmarkError::Create(dframe_,
+				landmark_detector_.pts_[i],
+				neutral_eg_.block(3 * index, 0, 3, 1),
+				delta_B_eg_.block(3 * index, 0, 3, exp_size),
+				param),
+			0,
 			x_coeff_eg_.data()
 		);
 	}
 	for (int i = 48; i <= 67; i++) {
+		int index = face_landmark[i];
 		problem1.AddResidualBlock(
-			CeresTrackLandmarkError::Create(dframe_, landmark_detector_.pts_[i], neutral_eg_, delta_B_eg_, face_landmark[i], param),
-			loss_function_wrapper1,
+			CeresTrackLandmarkError::Create(dframe_,
+				landmark_detector_.pts_[i],
+				neutral_eg_.block(3 * index, 0, 3, 1),
+				delta_B_eg_.block(3 * index, 0, 3, exp_size),
+				param),
+			0,
 			x_coeff_eg_.data()
 		);
 	}
@@ -474,18 +485,18 @@ void TrackCeres()
 		x_coeff_eg_.data()
 	);
 
+	LOG(INFO) << "solve problem";
 	ceres::Solver::Summary summary1;
 	ceres::Solve(options1, &problem1, &summary1);
 
 	//
 	LOG(INFO) << "X: " << Map<RowVectorXd>(x_coeff_eg_.data(), exp_size);
 	// output
-	UpdateDeltaBlendshapeCPU();
 	UpdateExpressionFaceCPU();
 	std::thread t(WriteExpressionFace, frame_count_, expression_eg_, translation_eg_, rotation_eg_);
 	t.detach();
 	//
-	UpdateNormalCPU();
+	//UpdateNormalCPU();
 }
 
 void Track()
@@ -497,17 +508,88 @@ void Track()
 	GenerateIcpMatrix();
 	//
 	EyeTrack();
-	//
 	MouthTrack();
+	//EyeMouthTrack();
 	//
 	LOG(INFO) << "X: " << Map<RowVectorXd>(x_coeff_eg_.data(), exp_size);
 	// output
-	UpdateDeltaBlendshapeCPU();
 	UpdateExpressionFaceCPU();
 	std::thread t(WriteExpressionFace, frame_count_, expression_eg_, translation_eg_, rotation_eg_);
 	t.detach();
 	//
-	UpdateNormalCPU();
+	//UpdateNormalCPU();
+}
+
+void EyeMouthTrack()
+{
+	const static double e_lambda1 = 10.0;
+	const static double e_lambda2 = 20.0;
+	const static double m_lambda1 = 400.0;
+	const static double m_lambda2 = 400.0;
+	// X
+	MatrixXd X(total_residual_size, exp_size);
+	X.setZero();
+	X.topRows(total_residual_size) = A_track_eg_ * delta_B_eg_.leftCols(exp_size);
+	// Y
+	MatrixXd Y(total_residual_size + exp_size, 1);
+	Y.setZero();
+	Y.topRows(total_residual_size) = C_track_eg_ - A_track_eg_ * neutral_eg_;
+
+	for (int i = 0; i < exp_size; i++) {
+		//double lambda1 = (i < eye_exp_size) ? e_lambda1 : m_lambda1;
+		//double lambda1 = 50;
+		X(total_residual_size + i, i) = e_lambda2;
+		Y(total_residual_size + i, 0) = e_lambda2 * (2 * xx_coeff_eg_(i) - xxx_coeff_eg_(i));
+	}
+	// Beta
+	VectorXd Beta, Beta_result;
+	Beta = Beta_result = x_coeff_eg_;
+
+	// (X_j) * (X_j)
+	std::vector<double> Xs(exp_size);
+	for (int i = 0; i < exp_size; i++) {
+		Xs[i] = X.col(i).dot(X.col(i));
+	}
+
+	double cost = -1;
+	for (int step = 0; step < 10; step++) {
+#pragma omp parallel for
+		for (int i = 0; i < exp_size; i++) {
+			double Si = -1 * X.col(i).dot(Y.col(0));
+			double lambda2 = (i < eye_exp_size) ? e_lambda2 : m_lambda2;
+			for (int j = 0; j < exp_size; j++) {
+				if (i == j)
+					continue;
+				Si += X.col(i).dot(X.col(j)) * Beta(j);
+			}
+			if (Si > lambda2) {
+				Beta_result(i) = (lambda2 - Si) / Xs[i];
+			}
+			else if (Si < -1 * lambda2) {
+				Beta_result(i) = (-1 * lambda2 - Si) / Xs[i];
+			}
+			else {
+				Beta_result(i) = 0;
+			}
+			Beta_result(i) = std::min(1.0, std::max(0.0, Beta_result(i)));
+		}
+		//
+		MatrixXd res = X * Beta_result - Y;
+		double new_cost = res.squaredNorm();
+		printf("%f + %f = %f@eye\n",
+			res.topRows(total_residual_size).squaredNorm(),
+			res.bottomRows(exp_size).squaredNorm(),
+			new_cost);
+		if ((cost - new_cost) > 0.00001 * cost || cost < 0) {
+			cost = new_cost;
+			Beta = Beta_result;
+		}
+		else/* if(new_cost <= cost)*/ {
+			break;
+		}
+	}
+	//
+	x_coeff_eg_ = Beta;
 }
 
 void EyeTrack()
@@ -665,7 +747,7 @@ void UpdateDeltaBlendshapeCPU()
 	}
 	/*Map<MatrixXd>(delta_B_eg_.data(), 3 * vertex_size * exp_size, 1) =
 	Map<MatrixXd>(delta_B2_eg_.data(), 3 * vertex_size * exp_size, pca_size) * y_coeff_eg_;*/
-	delta_B_eg_ = delta_B1_eg_;
+	delta_B_eg_ += delta_B1_eg_;
 }
 
 void UpdateExpressionFaceCPU()
@@ -684,8 +766,8 @@ void UpdateNormalCPU()
 		ml::MeshDatad::Indices::Face &ind = mesh_.m_FaceIndicesVertices[f];
 		Vector3d vec1 = model_map.col(ind[1]) - model_map.col(ind[0]);
 		Vector3d vec2 = model_map.col(ind[2]) - model_map.col(ind[0]);
-		Vector3d n = vec1.cross(vec2);
-		if (n(2) > 0)
+		Vector3d n = vec2.cross(vec1);
+		if (n(2) < 0)
 			n(2) *= -1;
 		normal_eg_.col(ind[0]) += n;
 		normal_eg_.col(ind[1]) += n;
