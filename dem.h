@@ -31,6 +31,10 @@ extern MatrixXd delta_B1_eg_;
 extern MatrixXd delta_B2_eg_;
 extern MatrixXd delta_B_eg_;
 
+extern int motion_param_ptr;
+extern bool motion_param_updated;
+extern double motion_param[motion_param_size][6];
+extern double motion_param_tmp[6];
 extern Vector3d translation_eg_;
 extern Matrix<double, 3, 3> rotation_eg_;
 extern cv::Mat translation_cv_;
@@ -71,7 +75,7 @@ void DEM();
 
 void SolvePnP();
 
-bool UpdateFrame();
+bool UpdateFrame(bool force_motion);
 
 Vector3d ReprojectionDepth(Vector2d p2, int depth);
 

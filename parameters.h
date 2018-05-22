@@ -58,5 +58,6 @@ extern std::vector<int> useless_expression;
 extern std::vector<int> eye_expression;
 extern std::vector<int> mouth_expression;
 
+const int motion_param_size = 10;
 
 #endif

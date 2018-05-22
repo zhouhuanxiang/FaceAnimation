@@ -8,6 +8,10 @@ MatrixXd delta_B1_eg_;
 MatrixXd delta_B2_eg_;
 MatrixXd delta_B_eg_;
 
+int motion_param_ptr;
+bool motion_param_updated;
+double motion_param[motion_param_size][6];
+double motion_param_tmp[6];
 Vector3d translation_eg_;
 Matrix<double, 3, 3> rotation_eg_;
 cv::Mat translation_cv_;
@@ -71,6 +75,12 @@ void DEM()
 	translation_cv_ = cv::Mat(3, 1, CV_64FC1);
 	rotation_eg_.setZero();
 	translation_eg_ = Vector3d(0, 0, 500);
+	motion_param_updated = 0;
+	motion_param_ptr = 1;
+	for (int i = 0; i < motion_param_size; i++) {
+		Eigen2Ceres(rotation_eg_, translation_eg_, motion_param[i]);
+	}
+	Eigen2Ceres(rotation_eg_, translation_eg_, motion_param_tmp);
 	//
 	x_coeff_eg_.resize(exp_size, 1);
 	x_coeff_eg_.setZero();
@@ -107,114 +117,13 @@ void DEM()
 	UpdateNormalCPU();
 }
 
-void SolvePnP()
+void UpdateMotion(cv::Mat dframe, std::vector<Eigen::Vector2d> pts, 
+	MatrixXd expression_eg,
+	int xmin, int xmax, int ymin, int ymax)
 {
-	std::vector<cv::Point3d> pts3;
-	std::vector<cv::Point2d> pts2;
-	for (int i = 0; i < face_landmark_size; i++) {
-		if (i < 17 || i >= 60 || (i >= 27 && i <= 30))
-			continue;
-		Vector3d pt3 = expression_eg_.block(3 * face_landmark[i], 0, 3, 1);
-		pts3.push_back(cv::Point3d(pt3(0), pt3(1), pt3(2)));
-		pts2.push_back(cv::Point2d(landmark_detector_.pts_[i](0), landmark_detector_.pts_[i](1)));
-	}
-	static double K[9] = {
-		-1 * depth_camera_.fx, 0, depth_camera_.cx,
-		0, -1 * depth_camera_.fy, depth_camera_.cy,
-		0, 0, 1
-	};
-	static double D[5] = {
-		0, 0, 0, 0, 0
-	};
-	static cv::Mat cam_matrix = cv::Mat(3, 3, CV_64FC1, K);
-	static cv::Mat dist_coeffs = cv::Mat(5, 1, CV_64FC1, D);
-
-	cv::Mat inlier;
-	//cv::solvePnPRansac(pts3, pts2, cam_matrix, dist_coeffs, rotation_cv_, translation_cv_,
-		//true, 100, 4.0, 0.95, inlier);
-	cv::solvePnP(pts3, pts2, cam_matrix, dist_coeffs, rotation_cv_, translation_cv_);
-	//for (int i = 0; i < inlier.rows; i++) {
-	//	std::cout << inlier.at<int>(i, 0) << " ";
-	//}
-	//std::cout << "\n";
-	LOG(INFO) << "inlier size" << inlier.size();
-
-	cv::Mat rotation_mat = cv::Mat(3, 3, CV_64FC1);
-	cv::Rodrigues(rotation_cv_, rotation_mat);
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
-			rotation_eg_(i, j) = rotation_mat.at<double>(i, j);
-		}
-		translation_eg_(i) = translation_cv_.at<double>(i, 0);
-	}
-	//LOG(INFO) << "rotation:" << rotation_eg_;
-	LOG(INFO) << "translation:" << Map<RowVectorXd>(translation_eg_.data(), 3);
-	std::cout << "translation:" << Map<RowVectorXd>(translation_eg_.data(), 3) << "\n";
-}
-
-bool SVD()
-{
-	int count = 0;
-	std::vector<Vector3d> ps1, ps2;
-
-	for (int i = 0; i < face_landmark_size; i++) {
-		if (i < 17 || i > 47)
-			continue;
-		Vector2d p2_landmark = landmark_detector_.pts_[i];
-		Vector3d p3_landmark = ReprojectionDepth(p2_landmark, dframe_.at<unsigned short>(p2_landmark(1), p2_landmark(0)));
-		int index = face_landmark[i];
-		Vector3d p3_model = expression_eg_.block(3 * index, 0, 3, 1);
-		Vector3d p3_model_now = rotation_eg_ * p3_model + translation_eg_;
-
-		//std::cout << Map<RowVector3d>(p3_landmark.data()) << "\n" << Map<RowVector3d>(p3_model_now.data()) << "\n\n";
-
-		//if ((p3_landmark - p3_model_now).norm() > 50)
-		//	continue;
-		ps1.push_back(p3_landmark);
-		ps2.push_back(p3_model);
-		count++;
-	}
-
-	if (count == 0) {
-		std::cout << "wrong svd\n";
-		return false;
-	}
-
-	MatrixXd pts1(3, count);
-	MatrixXd pts2(3, count);
-	for (int i = 0; i < count; i++) {
-		pts1.col(i) = ps1[i];
-		pts2.col(i) = ps2[i];
-	}
-	Vector3d centroid1 = pts1.rowwise().mean();
-	Vector3d centroid2 = pts2.rowwise().mean();
-	pts1.colwise() -= centroid1;
-	pts2.colwise() -= centroid2;
-
-
-	JacobiSVD<MatrixXd> svd(pts2 * pts1.transpose(), ComputeThinU | ComputeThinV);
-	rotation_eg_ = svd.matrixV() * svd.matrixU().transpose();
-	if (rotation_eg_.determinant() < 0) {
-		rotation_eg_.col(2) *= -1;
-	}
-	translation_eg_ = centroid1 - rotation_eg_ * centroid2;
-
-	//LOG(INFO) << "rotation:" << rotation_eg_;
-	LOG(INFO) << "translation:" << Map<RowVectorXd>(translation_eg_.data(), 3);
-	std::cout << Map<RowVectorXd>(translation_eg_.data(), 3) << "@" << count << "\n";
-	//std::cout << rotation_eg_ << "\n@";
-
-	return true;
-}
-
-void UpdateMotion()
-{
-	double param[6];
-	Eigen2Ceres(rotation_eg_, translation_eg_, param);
-
 	ceres::Problem problem1;
 	ceres::Solver::Options options1;
-	options1.linear_solver_type = ceres::DENSE_QR;
+	options1.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY;
 	options1.minimizer_progress_to_stdout = false;
 	options1.max_num_iterations = 500;
 	options1.num_threads = 16;
@@ -223,18 +132,23 @@ void UpdateMotion()
 
 	for (int i = 27; i <= 47; i++) {
 		problem1.AddResidualBlock(
-			CeresMotionLandmarkError::Create(dframe_,
-				landmark_detector_.pts_[i],
-				expression_eg_.block(3 * face_landmark[i], 0, 3, 1),
-				landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax),
+			CeresMotionLandmarkError::Create(dframe,
+				pts[i],
+				expression_eg.block(3 * face_landmark[i], 0, 3, 1),
+				xmin, xmax, ymin, ymax),
 			loss_function_wrapper1,
-			param, param + 3
+			motion_param_tmp, motion_param_tmp + 3
 		);
 	}
 
-	LOG(INFO) << "start solve";
 	ceres::Solver::Summary summary1;
 	ceres::Solve(options1, &problem1, &summary1);
+
+	motion_param_updated = true;
+	for (int i = 0; i < 6; i++) {
+		std::cout << motion_param_tmp[i] << " ";
+	}
+	std::cout << "@update\n";
 
 	//ceres::Problem problem2;
 	//for (int i = 0; i < vertex_size; i += 25) {
@@ -244,7 +158,7 @@ void UpdateMotion()
 	//			expression_eg_.block(3 * i, 0, 3, 1),
 	//			landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax),
 	//		0,
-	//		param, param + 3
+	//		motion_param, motion_param + 3
 	//	);
 	//}
 	//ceres::Solve(options1, &problem1, &summary1);
@@ -255,7 +169,7 @@ void UpdateMotion()
 	//		expression_eg_.block(3 * i, 0, 3, 1),
 	//		landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax);
 	//	double residuals;
-	//	error(param, param + 3, &residuals);
+	//	error(motion_param, motion_param + 3, &residuals);
 	//	std::cout << setw(15) << residuals << "\n";
 	//	//LOG(INFO) << setw(15) << residuals;
 	//}
@@ -266,17 +180,64 @@ void UpdateMotion()
 	//		expression_eg_.block(3 * face_landmark[i], 0, 3, 1),
 	//		landmark_detector_.xmin, landmark_detector_.xmax, landmark_detector_.ymin, landmark_detector_.ymax);
 	//	double residuals[3];
-	//	error(param, param + 3, residuals);
+	//	error(motion_param, motion_param + 3, residuals);
 	//	std::cout << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << " " << setw(15) << residuals[2] << "\n";
 	//	//LOG(INFO) << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << "\n";
 	//}
 
-	Ceres2Eigen(rotation_eg_, translation_eg_, param);
-	LOG(INFO) << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3);
-	std::cout << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3) << "@\n";
+	//Ceres2Eigen(rotation_eg_, translation_eg_, motion_param[motion_param_ptr]);
+	//LOG(INFO) << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3);
+	//std::cout << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3) << "@\n";
 }
 
-bool UpdateFrame()
+void FitMotion()
+{
+	LOG(INFO) << "fit motion";
+
+	ceres::Problem problem1, problem2;
+	ceres::Solver::Options options1;
+	options1.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY;
+	options1.minimizer_progress_to_stdout = false;
+	options1.max_num_iterations = 500;
+	options1.num_threads = 16;
+	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::HuberLoss(1.0), ceres::TAKE_OWNERSHIP);
+
+	int data_size = 4;
+	double coeffs[3 * 6];
+	for (int i = 0; i < data_size; i++) {
+		int prev_ptr = (motion_param_ptr + motion_param_size + i - data_size) % motion_param_size;
+		for (int j = 0; j < 3; j++) {
+			problem1.AddResidualBlock(CeresMotionFitError::Create(i, motion_param[prev_ptr][j]),
+				0,
+				coeffs + 3 * j
+			);
+		}
+		for (int j = 3; j < 6; j++) {
+			problem2.AddResidualBlock(CeresMotionFitError::Create(i, motion_param[prev_ptr][j]),
+				0,
+				coeffs + 3 * j
+			);
+		}
+	}
+	LOG(INFO) << "start solve";
+	ceres::Solver::Summary summary1, summary2;
+	ceres::Solve(options1, &problem1, &summary1);
+	ceres::Solve(options1, &problem2, &summary2);
+	for (int i = 0; i < 6; i++) {
+		motion_param[motion_param_ptr][i] = coeffs[3 * i] + coeffs[3 * i + 1] * data_size + coeffs[3 * i + 2] * data_size * data_size;
+	}
+
+	Ceres2Eigen(rotation_eg_, translation_eg_, motion_param[motion_param_ptr]);
+	//LOG(INFO) << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3);
+	//LOG(INFO) << "Y: " << Map<RowVectorXd>(y_coeff_eg_.data(), pca_size);
+	//std::cout << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3) << "@fit\n";
+	for (int i = 0; i < 6; i++) {
+		std::cout << motion_param[motion_param_ptr][i] << " ";
+	}
+	std::cout << "@fit\n";
+}
+
+bool UpdateFrame(bool force_motion)
 {
 	static ImageReaderKinect image_reader(Kinect_Data_Dir);
 	image_reader.GetFrame(frame_count_, cframe_, dframe_); 
@@ -293,41 +254,52 @@ bool UpdateFrame()
 	//	return false;
 	//}
 	//WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
-	UpdateMotion();
-	//WriteExpressionFace(frame_count_, expression_eg_, translation_eg_, rotation_eg_);
+
+	if (!force_motion) {
+		while (!motion_param_updated) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
+		motion_param_updated = false;
+		for (int i = 0; i < 6; i++) {
+			motion_param[motion_param_ptr][i] = motion_param_tmp[i];
+		}
+		motion_param_ptr = (frame_count_) % motion_param_size;
+		FitMotion();
+		//std::thread t(UpdateMotion,
+		//	dframe_,
+		//	landmark_detector_.pts_,
+		//	landmark_detector_.xmin,
+		//	landmark_detector_.xmax,
+		//	landmark_detector_.ymin,
+		//	landmark_detector_.ymax);
+		//t.detach();
+		UpdateMotion(dframe_,
+			landmark_detector_.pts_,
+			expression_eg_,
+			landmark_detector_.xmin,
+			landmark_detector_.xmax,
+			landmark_detector_.ymin,
+			landmark_detector_.ymax);
+	}
+	else {
+		UpdateMotion(dframe_,
+			landmark_detector_.pts_,
+			expression_eg_,
+			landmark_detector_.xmin,
+			landmark_detector_.xmax,
+			landmark_detector_.ymin,
+			landmark_detector_.ymax);
+		motion_param_ptr = (frame_count_) % motion_param_size;
+		for (int i = 0; i < 6; i++) {
+			motion_param[motion_param_ptr][i] = motion_param_tmp[i];
+		}
+	}
 
   	return true;
 }
 
-Vector3d ReprojectionDepth(Vector2d p2, int depth)
-{
-	if (depth == 0)
-		return Vector3d(0, 0, 0);
-
-	return depth * depth_camera_reproject_ * Vector3d(p2.x(), p2.y(), 1);
-}
-
-Vector3d ProjectionDepth(Vector3d p3)
-{
-	if (p3.z() == 0)
-		return Vector3d(0, 0);
-
-	return 1.0 / p3.z() * depth_camera_project_ * p3;
-}
-
-Vector3d ProjectionRgb(Vector3d p3)
-{
-	if (p3.z() == 0)
-		return Vector3d(0, 0);
-
-	return 1.0 / p3.z() * rgb_camera_project_ * p3;
-}
-
 void Initialize()
 {
-	double param[6];
-	Eigen2Ceres(rotation_eg_, translation_eg_, param);
-
 	ceres::Problem problem1;
 	ceres::Solver::Options options1;
 	options1.linear_solver_type = ceres::DENSE_SCHUR;
@@ -343,7 +315,7 @@ void Initialize()
 				M_eg_, P_eg_,
 				landmark_detector_.pts_[i]),
 			loss_function_wrapper1, 
-			param, param + 3, y_coeff_eg_.data()
+			motion_param[motion_param_ptr], motion_param[motion_param_ptr] + 3, y_coeff_eg_.data()
 		);
 	}
 	for (int i = 0; i < vertex_size; i += 25) {
@@ -355,7 +327,7 @@ void Initialize()
 				0.05,
 				true),
 			loss_function_wrapper1,
-			param, param + 3, y_coeff_eg_.data()
+			motion_param[motion_param_ptr], motion_param[motion_param_ptr] + 3, y_coeff_eg_.data()
 		);
 	}
 	problem1.AddResidualBlock(
@@ -365,7 +337,7 @@ void Initialize()
 	ceres::Solver::Summary summary1;
 	ceres::Solve(options1, &problem1, &summary1);
 
-	Ceres2Eigen(rotation_eg_, translation_eg_, param);
+	Ceres2Eigen(rotation_eg_, translation_eg_, motion_param[motion_param_ptr]);
 	LOG(INFO) << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3);
 	LOG(INFO) << "Y: " << Map<RowVectorXd>(y_coeff_eg_.data(), pca_size);
 	std::cout << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3) << "\n";
@@ -377,7 +349,7 @@ void Initialize()
 	//		M_eg_, P_eg_,
 	//		landmark_detector_.pts_[i]);
 	//	double residuals[3];
-	//	error(param, param + 3, y_coeff_eg_.data(), residuals);
+	//	error(motion_param[motion_param_ptr], motion_param[motion_param_ptr] + 3, y_coeff_eg_.data(), residuals);
 	//	std::cout << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << setw(15) << residuals[2] << "\n";
 	//}
 
@@ -442,9 +414,6 @@ void TrackCeres()
 	xxx_coeff_eg_ = xx_coeff_eg_;
 	xx_coeff_eg_ = x_coeff_eg_;
 
-	double param[6];
-	Eigen2Ceres(rotation_eg_, translation_eg_, param);
-
 	ceres::Problem problem1;
 	ceres::Solver::Options options1;
 	options1.linear_solver_type = ceres::DENSE_QR;
@@ -461,7 +430,7 @@ void TrackCeres()
 				landmark_detector_.pts_[i],
 				neutral_eg_.block(3 * index, 0, 3, 1),
 				delta_B_eg_.block(3 * index, 0, 3, exp_size),
-				param),
+				motion_param[motion_param_ptr]),
 			0,
 			x_coeff_eg_.data()
 		);
@@ -473,7 +442,7 @@ void TrackCeres()
 				landmark_detector_.pts_[i],
 				neutral_eg_.block(3 * index, 0, 3, 1),
 				delta_B_eg_.block(3 * index, 0, 3, exp_size),
-				param),
+				motion_param[motion_param_ptr]),
 			0,
 			x_coeff_eg_.data()
 		);
@@ -843,4 +812,128 @@ void WritePointCloud()
 	ml::MeshIOd::saveToOBJ(Test_Output_Dir + str, tmp);
 	//std::thread t(ml::MeshIOd::saveToOBJ, Test_Output_Dir + str, tmp);
 	//t.detach();
+}
+
+Vector3d ReprojectionDepth(Vector2d p2, int depth)
+{
+	if (depth == 0)
+		return Vector3d(0, 0, 0);
+
+	return depth * depth_camera_reproject_ * Vector3d(p2.x(), p2.y(), 1);
+}
+
+Vector3d ProjectionDepth(Vector3d p3)
+{
+	if (p3.z() == 0)
+		return Vector3d(0, 0);
+
+	return 1.0 / p3.z() * depth_camera_project_ * p3;
+}
+
+Vector3d ProjectionRgb(Vector3d p3)
+{
+	if (p3.z() == 0)
+		return Vector3d(0, 0);
+
+	return 1.0 / p3.z() * rgb_camera_project_ * p3;
+}
+
+void SolvePnP()
+{
+	std::vector<cv::Point3d> pts3;
+	std::vector<cv::Point2d> pts2;
+	for (int i = 0; i < face_landmark_size; i++) {
+		if (i < 17 || i >= 60 || (i >= 27 && i <= 30))
+			continue;
+		Vector3d pt3 = expression_eg_.block(3 * face_landmark[i], 0, 3, 1);
+		pts3.push_back(cv::Point3d(pt3(0), pt3(1), pt3(2)));
+		pts2.push_back(cv::Point2d(landmark_detector_.pts_[i](0), landmark_detector_.pts_[i](1)));
+	}
+	static double K[9] = {
+		-1 * depth_camera_.fx, 0, depth_camera_.cx,
+		0, -1 * depth_camera_.fy, depth_camera_.cy,
+		0, 0, 1
+	};
+	static double D[5] = {
+		0, 0, 0, 0, 0
+	};
+	static cv::Mat cam_matrix = cv::Mat(3, 3, CV_64FC1, K);
+	static cv::Mat dist_coeffs = cv::Mat(5, 1, CV_64FC1, D);
+
+	cv::Mat inlier;
+	//cv::solvePnPRansac(pts3, pts2, cam_matrix, dist_coeffs, rotation_cv_, translation_cv_,
+	//true, 100, 4.0, 0.95, inlier);
+	cv::solvePnP(pts3, pts2, cam_matrix, dist_coeffs, rotation_cv_, translation_cv_);
+	//for (int i = 0; i < inlier.rows; i++) {
+	//	std::cout << inlier.at<int>(i, 0) << " ";
+	//}
+	//std::cout << "\n";
+	LOG(INFO) << "inlier size" << inlier.size();
+
+	cv::Mat rotation_mat = cv::Mat(3, 3, CV_64FC1);
+	cv::Rodrigues(rotation_cv_, rotation_mat);
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			rotation_eg_(i, j) = rotation_mat.at<double>(i, j);
+		}
+		translation_eg_(i) = translation_cv_.at<double>(i, 0);
+	}
+	//LOG(INFO) << "rotation:" << rotation_eg_;
+	LOG(INFO) << "translation:" << Map<RowVectorXd>(translation_eg_.data(), 3);
+	std::cout << "translation:" << Map<RowVectorXd>(translation_eg_.data(), 3) << "\n";
+}
+
+bool SVD()
+{
+	int count = 0;
+	std::vector<Vector3d> ps1, ps2;
+
+	for (int i = 0; i < face_landmark_size; i++) {
+		if (i < 17 || i > 47)
+			continue;
+		Vector2d p2_landmark = landmark_detector_.pts_[i];
+		Vector3d p3_landmark = ReprojectionDepth(p2_landmark, dframe_.at<unsigned short>(p2_landmark(1), p2_landmark(0)));
+		int index = face_landmark[i];
+		Vector3d p3_model = expression_eg_.block(3 * index, 0, 3, 1);
+		Vector3d p3_model_now = rotation_eg_ * p3_model + translation_eg_;
+
+		//std::cout << Map<RowVector3d>(p3_landmark.data()) << "\n" << Map<RowVector3d>(p3_model_now.data()) << "\n\n";
+
+		//if ((p3_landmark - p3_model_now).norm() > 50)
+		//	continue;
+		ps1.push_back(p3_landmark);
+		ps2.push_back(p3_model);
+		count++;
+	}
+
+	if (count == 0) {
+		std::cout << "wrong svd\n";
+		return false;
+	}
+
+	MatrixXd pts1(3, count);
+	MatrixXd pts2(3, count);
+	for (int i = 0; i < count; i++) {
+		pts1.col(i) = ps1[i];
+		pts2.col(i) = ps2[i];
+	}
+	Vector3d centroid1 = pts1.rowwise().mean();
+	Vector3d centroid2 = pts2.rowwise().mean();
+	pts1.colwise() -= centroid1;
+	pts2.colwise() -= centroid2;
+
+
+	JacobiSVD<MatrixXd> svd(pts2 * pts1.transpose(), ComputeThinU | ComputeThinV);
+	rotation_eg_ = svd.matrixV() * svd.matrixU().transpose();
+	if (rotation_eg_.determinant() < 0) {
+		rotation_eg_.col(2) *= -1;
+	}
+	translation_eg_ = centroid1 - rotation_eg_ * centroid2;
+
+	//LOG(INFO) << "rotation:" << rotation_eg_;
+	LOG(INFO) << "translation:" << Map<RowVectorXd>(translation_eg_.data(), 3);
+	std::cout << Map<RowVectorXd>(translation_eg_.data(), 3) << "@" << count << "\n";
+	//std::cout << rotation_eg_ << "\n@";
+
+	return true;
 }

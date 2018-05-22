@@ -171,3 +171,27 @@ ceres::CostFunction* CeresMotionLandmarkError::Create(cv::Mat& frame,
 			p3_model,
 			xmin, xmax, ymin, ymax)));
 }
+
+
+CeresMotionFitError::CeresMotionFitError(double x_value, double y_value)
+	:x_value(x_value), y_value(y_value)
+{
+}
+
+#define FIT_DIM 3
+
+template <class T>
+bool CeresMotionFitError::operator()(const T* const coeffs, T* residuals) const
+{
+	residuals[0] = coeffs[0] +
+		coeffs[1] * x_value +
+		coeffs[2] * x_value * x_value -
+		y_value;
+	return true;
+}
+
+ceres::CostFunction* CeresMotionFitError::Create(double x_value, double y_value)
+{
+	return (new ceres::AutoDiffCostFunction<CeresMotionFitError, 1, FIT_DIM>(
+		new CeresMotionFitError(x_value, y_value)));
+}

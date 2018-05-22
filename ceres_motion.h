@@ -69,4 +69,19 @@ public:
 	double xmin, xmax, ymin, ymax;
 };
 
+
+class CeresMotionFitError {
+public:
+	CeresMotionFitError(double x_value, double y_value);
+
+	template <class T>
+	bool operator()(const T* const coeffs, T* residuals) const;
+
+	static ceres::CostFunction* Create(double x_value, double y_value);
+
+public:
+	double x_value;
+	double y_value;
+};
+
 #endif
