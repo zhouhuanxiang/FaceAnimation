@@ -76,9 +76,9 @@ bool CeresTrackDenseError::operator()(const T* const x_coeff, T* residuals) cons
 	T d = T(0);
 	for (int i = 0; i < 4; i++) {
 		d += (double)frame.at<unsigned short>(ys[i], xs[i]) * ws[i];
-		//std::cout << frame.at<unsigned short>(ys[i], xs[i]) << " ";
+		////std::cout << frame.at<unsigned short>(ys[i], xs[i]) << " ";
 	}
-	//std::cout << "\n";
+	////std::cout << "\n";
 	residuals[0] = weight * (p3[2] - d);
 
 	return true;
@@ -166,9 +166,9 @@ bool CeresTrackLandmarkError::operator()(const T* const x_coeff, T* residuals) c
 	T d = T(0);
 	for (int i = 0; i < 4; i++) {
 		d += (double)frame.at<unsigned short>(ys[i], xs[i]) * ws[i];
-		//std::cout << frame.at<unsigned short>(ys[i], xs[i]) << " ";
+		////std::cout << frame.at<unsigned short>(ys[i], xs[i]) << " ";
 	}
-	//std::cout << "\n";
+	////std::cout << "\n";
 	residuals[0] = alpha1 * (p3[2] - d);
 
 
@@ -206,8 +206,8 @@ CeresTrackRegulation::CeresTrackRegulation(MatrixXd &xx_coeff, MatrixXd & xxx_co
 template <class T>
 bool CeresTrackRegulation::operator()(const T* const x_coeff, T* residuals) const
 {
-	double lamda1 = 0.05;
-	double lamda2 = 0.25;
+	double lamda1 = 0.15;
+	double lamda2 = 0.45;
 
 	for (int i = 0; i < 2 * exp_size; i++)
 		residuals[i] = T(0);

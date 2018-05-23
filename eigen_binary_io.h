@@ -33,7 +33,7 @@ void write_binary(string filename, const Matrix& matrix){
 	typename Matrix::Index rows = matrix.rows(), cols = matrix.cols();
 	out.write((char*)(&rows), sizeof(typename Matrix::Index));
 	out.write((char*)(&cols), sizeof(typename Matrix::Index));
-	std::cout << rows << " " << cols << "\n";
+	//std::cout << rows << " " << cols << "\n";
 	out.write((char*)matrix.data(), rows*cols*sizeof(typename Matrix::Scalar));
 	out.close();
 }
@@ -44,7 +44,7 @@ void read_binary(string filename, Matrix& matrix){
 	in.read((char*)(&rows), sizeof(typename Matrix::Index));
 	in.read((char*)(&cols), sizeof(typename Matrix::Index));
 	matrix.resize(rows, cols);
-	//std::cout << rows << " " << cols << "\n";
+	////std::cout << rows << " " << cols << "\n";
 	in.read((char *)matrix.data(), rows*cols*sizeof(typename Matrix::Scalar));
 	in.close();
 }

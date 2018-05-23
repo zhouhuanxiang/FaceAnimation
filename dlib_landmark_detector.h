@@ -78,7 +78,7 @@ public:
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 
-		LOG(INFO) << "landmark detect " << lcount_ - fcount_;
+		//LOG(INFO) << "landmark detect " << lcount_ - fcount_;
 		// read face to local (with mtx)
 		rectangle face_local;
 		ReadFace(face_local);

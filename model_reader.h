@@ -31,8 +31,8 @@ public:
 		read_binary(Data_Input_Dir + "delta_B1_min", delta_B1_eg_);
 		read_binary(Data_Input_Dir + "delta_B2_min", delta_B2_eg_);
 
-		//std::cout << delta_B2_eg_.rows() << " " << delta_B1_eg_.cols() << "\n";
-		//std::cout << "\n";
+		////std::cout << delta_B2_eg_.rows() << " " << delta_B1_eg_.cols() << "\n";
+		////std::cout << "\n";
 	}
 
 	void ConcatMatrix()
@@ -53,7 +53,7 @@ public:
 				index = eye_expression[i];
 			else
 				index = mouth_expression[i - eye_exp_size];
-			std::cout << index << "\n";
+			//std::cout << index << "\n";
 
 			MatrixXd b1_i, b2_i;
 			char str[20];
@@ -76,7 +76,7 @@ public:
 			count++;
 		}
 
-		std::cout << "\n";
+		//std::cout << "\n";
 		
 		write_binary(Data_Input_Dir + "delta_B1_min", delta_B1);
 		write_binary(Data_Input_Dir + "delta_B2_min", delta_B2);

@@ -38,7 +38,7 @@ public:
 
 	void GetFrame(int idx, cv::Mat& cframe, cv::Mat& dframe)
 	{
-		LOG(INFO) << "read image (I/O)";
+		//LOG(INFO) << "read image (I/O)";
 		cframe = cframes[idx];
 		dframe = dframes[idx];
 	}

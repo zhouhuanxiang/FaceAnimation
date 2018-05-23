@@ -57,7 +57,7 @@ public:
 				ld_.fcount_ = lcount;
 			}
 			else {
-				std::cout << "totally " << faces.size() << " faces detected!\n";
+				//std::cout << "totally " << faces.size() << " faces detected!\n";
 			}
 		}
 	}

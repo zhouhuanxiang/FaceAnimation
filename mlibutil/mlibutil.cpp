@@ -13,7 +13,7 @@ namespace ml
 	{
 		if (!statement)
 		{
-			std::cout << description << std::endl;
+			//std::cout << description << std::endl;
 		}
 	}
 
@@ -87,7 +87,7 @@ namespace ml
 
 	void warningFunctionMLIB(const std::string &description)
 	{
-		std::cout << description << std::endl;
+		//std::cout << description << std::endl;
 		//DEBUG_BREAK;
 	}
 

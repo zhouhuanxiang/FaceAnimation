@@ -23,6 +23,14 @@
 
 using namespace Eigen;
 
+extern long long track_time_;
+extern long long track_time1_;
+extern long long track_time2_;
+extern long long track_time3_;
+extern long long solve_time1_;
+extern long long solve_time2_;
+extern long long solve_time3_;
+
 extern MatrixXd M_eg_;
 extern MatrixXd P_eg_;
 extern MatrixXd M_eg_;
@@ -73,21 +81,22 @@ extern DlibLandmarkDetector landmark_detector_;
 
 void DEM();
 
+//bool SVD();
 void SolvePnP();
-
-bool UpdateFrame(bool force_motion);
+//void UpdateMotion(cv::Mat &dframe, std::vector<Eigen::Vector2d> pts, MatrixXd expression_eg, int xmin, int xmax, int ymin, int ymax);
+void FitMotion();
+//bool UpdateFrame(bool force_motion);
 
 Vector3d ReprojectionDepth(Vector2d p2, int depth);
-
-//Vector3d ReprojectionRgb(Vector2d p2, int depth);
-
+Vector3d ReprojectionRgb(Vector2d p2, int depth);
 Vector3d ProjectionDepth(Vector3d p3);
-
 Vector3d ProjectionRgb(Vector3d p3);
 
 void Initialize();
 
 void TrackCeres();
+
+void GenerateIcpMatrix();
 
 void Track();
 void EyeMouthTrack();
@@ -95,17 +104,12 @@ void EyeTrack();
 void MouthTrack();
 
 void UpdateNeutralFaceCPU();
-
 void UpdateDeltaBlendshapeCPU();
-
 void UpdateExpressionFaceCPU();
-
 void UpdateNormalCPU();
 
 void WriteNeutralFace(int count, MatrixXd tmesh);
-
 void WriteExpressionFace(int count, MatrixXd tmesh, Vector3d translation_eg, Matrix<double, 3, 3> rotation_eg);
-
 void WritePointCloud();
 
 #endif

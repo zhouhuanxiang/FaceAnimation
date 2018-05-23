@@ -56,6 +56,9 @@
     <ClCompile Include="ceres_track.cpp">
       <Filter>ceres</Filter>
     </ClCompile>
+    <ClCompile Include="dem1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ceres_initialization.h">
@@ -96,6 +99,9 @@
     </ClInclude>
     <ClInclude Include="ceres_track.h">
       <Filter>ceres</Filter>
+    </ClInclude>
+    <ClInclude Include="dem1.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

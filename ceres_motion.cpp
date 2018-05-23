@@ -65,9 +65,9 @@ bool CeresMotionDenseError::operator()(const T* const R, const T* const tr, T* r
 	T d = T(0);
 	for (int i = 0; i < 4; i++) {
 		d += (double)frame.at<unsigned short>(ys[i], xs[i]) * ws[i];
-		//std::cout << frame.at<unsigned short>(ys[i], xs[i]) << " ";
+		////std::cout << frame.at<unsigned short>(ys[i], xs[i]) << " ";
 	}
-	//std::cout << "\n";
+	////std::cout << "\n";
 	residuals[0] = (p3[2] - d);
 
 	return true;
@@ -142,9 +142,9 @@ bool CeresMotionLandmarkError::operator()(const T* const R, const T* const tr, T
 	T d = T(0);
 	for (int i = 0; i < 4; i++) {
 		d += (double)frame.at<unsigned short>(ys[i], xs[i]) * ws[i];
-		//std::cout << frame.at<unsigned short>(ys[i], xs[i]) << " ";
+		////std::cout << frame.at<unsigned short>(ys[i], xs[i]) << " ";
 	}
-	//std::cout << "\n";
+	////std::cout << "\n";
 	residuals[0] = alpha1 * (p3[2] - d);
 
 

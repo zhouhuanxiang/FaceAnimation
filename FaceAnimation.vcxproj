@@ -158,6 +158,7 @@
       <AdditionalDependencies>ceres.lib;libglog.lib;opencv_world340.lib;clblast.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       <AdditionalOptions>/time %(AdditionalOptions)</AdditionalOptions>
+      <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -170,6 +171,7 @@
     <ClCompile Include="ceres_param.cpp" />
     <ClCompile Include="ceres_track.cpp" />
     <ClCompile Include="dem.cpp" />
+    <ClCompile Include="dem1.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mlibutil\mlibutil.cpp" />
     <ClCompile Include="parameters.cpp" />
@@ -180,6 +182,7 @@
     <ClInclude Include="ceres_param.h" />
     <ClInclude Include="ceres_track.h" />
     <ClInclude Include="dem.h" />
+    <ClInclude Include="dem1.h" />
     <ClInclude Include="dlib_landmark_detector.h" />
     <ClInclude Include="dlib_face_detector.h" />
     <ClInclude Include="eigen_binary_io.h" />

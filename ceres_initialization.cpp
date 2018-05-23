@@ -160,9 +160,9 @@ bool CeresLandmarkError::operator()(const T* const R, const T* const tr, const T
 	T d = T(0);
 	for (int i = 0; i < 4; i++) {
 		d += (double)frame.at<unsigned short>(ys[i], xs[i]) * ws[i];
-		//std::cout << frame.at<unsigned short>(ys[i], xs[i]) << " ";
+		////std::cout << frame.at<unsigned short>(ys[i], xs[i]) << " ";
 	}
-	//std::cout << "\n";
+	////std::cout << "\n";
 	residuals[0] = alpha1 * (p3[2] - d);
 
 
@@ -200,9 +200,9 @@ bool CeresInitializationRegulation::operator()(const T* const pca_coeff, T* resi
 {
 	for (int i = 0; i < pca_size; i++){
 		residuals[i] = ((T)pca_coeff[i]) * pca_weights(i) * 75.0;
-		//std::cout << residuals[i] << "\n";
+		////std::cout << residuals[i] << "\n";
 	}
-	//std::cout << "\n";
+	////std::cout << "\n";
 	return true;
 }
 
