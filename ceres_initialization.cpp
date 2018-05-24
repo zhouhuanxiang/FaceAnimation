@@ -32,7 +32,7 @@ bool CeresFaceDenseError::operator()(const T* const R, const T* const tr, const 
 	//
 	ceres::AngleAxisRotatePoint(R, p1, p2);
 	for (int i = 0; i < 3; ++i) {
-		p1[i] = p2[i] + tr[i];
+		p1[i] = p2[i] + tr[i] + CameraExtrinsic(i);
 	}
 	//
 	T p3[3];
@@ -100,8 +100,6 @@ ceres::CostFunction* CeresFaceDenseError::Create(int mesh_index,
 			point_to_point)));
 }
 
-Matrix<double, 3, 1> CeresLandmarkError::camera_extrinsic_translation = Matrix<double, 3, 1>();
-
 CeresLandmarkError::CeresLandmarkError(int mesh_index,
 	cv::Mat& frame, 
 	MatrixXd& M_eg_, MatrixXd& P_eg_,
@@ -134,6 +132,15 @@ bool CeresLandmarkError::operator()(const T* const R, const T* const tr, const T
 	double alpha1 = 0.2;
 	double alpha2 = 1;
 
+	p3[0] = -1.0 * p1[0] / p1[2] * rgb_camera.fx + rgb_camera.cx;
+	p3[1] = -1.0 * p1[1] / p1[2] * rgb_camera.fy + rgb_camera.cy;
+	p3[2] = p1[2];
+	residuals[1] = alpha2 * (p3[0] - p2_landmark(0));
+	residuals[2] = alpha2 * (p3[1] - p2_landmark(1));
+
+	for (int i = 0; i < 3; ++i) {
+		p1[i] = p1[i] + CameraExtrinsic(i);
+	}
 	p3[0] = -1.0 * p1[0] / p1[2] * depth_camera.fx + depth_camera.cx;
 	p3[1] = -1.0 * p1[1] / p1[2] * depth_camera.fy + depth_camera.cy;
 	p3[2] = p1[2];
@@ -164,16 +171,6 @@ bool CeresLandmarkError::operator()(const T* const R, const T* const tr, const T
 	}
 	////std::cout << "\n";
 	residuals[0] = alpha1 * (p3[2] - d);
-
-
-	for (int i = 0; i < 3; ++i) {
-		p1[i] = p1[i] + camera_extrinsic_translation(i);
-	}
-	p3[0] = -1.0 * p1[0] / p1[2] * rgb_camera.fx + rgb_camera.cx;
-	p3[1] = -1.0 * p1[1] / p1[2] * rgb_camera.fy + rgb_camera.cy;
-	p3[2] = p1[2];
-	residuals[1] = alpha2 * (p3[0] - p2_landmark(0));
-	residuals[2] = alpha2 * (p3[1] - p2_landmark(1));
 
 	return true;
 }

@@ -73,7 +73,6 @@ extern DepthCameraIntrinsic depth_camera_;
 extern RgbCameraIntrinsic rgb_camera_;
 extern Matrix<double, 3, 3> depth_camera_project_;
 extern Matrix<double, 3, 3> depth_camera_reproject_;
-extern Matrix<double, 3, 1> camera_extrinsic_translation_;
 extern Matrix<double, 3, 3> rgb_camera_project_;
 //extern Matrix<double, 3, 3> rgb_camera_reproject_;
 

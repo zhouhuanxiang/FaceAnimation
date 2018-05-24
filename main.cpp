@@ -11,6 +11,9 @@
 
 int main(int argc, char** argv)
 {
+	Eigen::initParallel();
+	Eigen::setNbThreads(128);
+
 	FLAGS_logtostderr = false;
 	google::SetLogDestination(google::GLOG_INFO, "C:/Users/zhx/Desktop/log/log");
 	google::SetLogDestination(google::GLOG_WARNING, "C:/Users/zhx/Desktop/log/warning");

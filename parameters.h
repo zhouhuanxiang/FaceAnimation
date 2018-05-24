@@ -1,9 +1,12 @@
 #ifndef PARAMETERS_
 #define PARAMETERS_
 
+#define USE_KINECT 1
+
 #include <set>
 #include <vector>
 #include <string>
+#include <Eigen/Core>
 using namespace std;
 
 struct DepthCameraIntrinsic
@@ -27,6 +30,8 @@ struct RgbCameraIntrinsic
 	double cy = 539.5;
 };
 
+extern Eigen::Vector3d CameraExtrinsic;
+
 const int frame_count_end = 380;
 
 const int vertex_size = 3641;
@@ -38,8 +43,8 @@ const int mouth_exp_size = 33 - 6 - 8;
 const int face_landmark_size = 68;
 
 const int eye_landmark_size = 22;
-const int mouth_landmark_size = 12;
-const int total_residual_size = (22 + 12) * 2;
+const int mouth_landmark_size = 12 + 8;
+const int total_residual_size = (22 + 12 + 8) * 2;
 
 // GPU
 const int stream_size = 100;

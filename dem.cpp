@@ -50,7 +50,6 @@ DepthCameraIntrinsic depth_camera_;
 RgbCameraIntrinsic rgb_camera_;
 Matrix<double, 3, 3> depth_camera_project_;
 Matrix<double, 3, 3> depth_camera_reproject_;
-Matrix<double, 3, 1> camera_extrinsic_translation_;
 Matrix<double, 3, 3> rgb_camera_project_;
 Matrix<double, 3, 3> rgb_camera_reproject_;
 //Matrix<double, 3, 3> rgb_camera_reproject_;
@@ -75,8 +74,6 @@ void DEM()
 		-1 / depth_camera_.fx, 0, depth_camera_.cx / depth_camera_.fx,
 		0, -1 / depth_camera_.fy, depth_camera_.cy / depth_camera_.fy,
 		0, 0, 1;
-	//camera_extrinsic_translation_ << 0, 0, 0;
-	camera_extrinsic_translation_ << -52, 0, 0;
 	rgb_camera_project_ <<
 		-1 * rgb_camera_.fx, 0, rgb_camera_.cx,
 		0, -1 * rgb_camera_.fy, rgb_camera_.cy,
@@ -189,7 +186,6 @@ void Initialize()
 	options1.max_num_iterations = 25;
 	options1.num_threads = 1;
 	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(5.0), ceres::TAKE_OWNERSHIP);
-	CeresLandmarkError::camera_extrinsic_translation = camera_extrinsic_translation_;
 	for (int i = 17; i <= 67; i++) {
 		problem1.AddResidualBlock(
 			CeresLandmarkError::Create(face_landmark[i],
@@ -247,7 +243,7 @@ void GenerateIcpMatrix()
 	MatrixXd C(total_residual_size, 1);
 	C.setZero();
 	std::vector<Tripletd> tris;
-	double alpha1 = 2;
+	double alpha1 = 1;
 	for (int lm = 0; lm < eye_landmark_size + mouth_landmark_size; lm++) {
 		int lm_index;
 		if (lm < 10)
@@ -261,13 +257,13 @@ void GenerateIcpMatrix()
 		//Vector3d p3_landmark = ReprojectionDepth(p2_landmark, dframe_.at<unsigned short>(p2_landmark(1), p2_landmark(0)));
 		int index = face_landmark[lm_index];
 		Vector3d p3_model = expression_eg_.block(3 * index, 0, 3, 1);
-		Vector3d p3_model_now = rotation_eg_ * p3_model + translation_eg_ + camera_extrinsic_translation_;
+		Vector3d p3_model_now = rotation_eg_ * p3_model + translation_eg_;
 		Vector3d n3_model = normal_eg_.col(index);
 
 		// 2d landmark displacement
 		{
 			MatrixXd lhs = alpha1 * (rgb_camera_project_.topRows(2) * rotation_eg_ / p3_model_now(2));
-			MatrixXd rhs = alpha1 * (p2_landmark - rgb_camera_project_.topRows(2) * (translation_eg_ + camera_extrinsic_translation_) / p3_model_now(2));
+			MatrixXd rhs = alpha1 * (p2_landmark - rgb_camera_project_.topRows(2) * (translation_eg_) / p3_model_now(2));
 			if ((lhs * p3_model - rhs).squaredNorm() < 8 || true) {
 				for (int i = 0; i < 2; i++) {
 					for (int j = 0; j < 3; j++) {
@@ -305,7 +301,6 @@ void TrackCeres()
 	options1.max_num_iterations = 25;
 	options1.num_threads = 1;
 	ceres::LossFunctionWrapper* loss_function_wrapper1 = new ceres::LossFunctionWrapper(new ceres::CauchyLoss(5.0), ceres::TAKE_OWNERSHIP);
-	CeresTrackLandmarkError::camera_extrinsic_translation = camera_extrinsic_translation_;
 
 	for (int i = 36; i <= 47; i++) {
 		int index = face_landmark[i];
@@ -651,7 +646,6 @@ void EyeMouthTrack()
 
 void EyeTrack()
 {
-	std::chrono::steady_clock::time_point tp1 = std::chrono::steady_clock::now();
 	const static double lambda1 = 15.0;
 	const static double lambda2 = 25.0;
 	// X
@@ -672,29 +666,28 @@ void EyeTrack()
 	VectorXd Beta, Beta_result;
 	Beta = Beta_result = x_coeff_eg_.topRows(eye_exp_size);
 
-	MatrixXd Ys = Y.transpose() * X;
+	MatrixXd Ys = -1 * X.transpose() * Y;
 	MatrixXd XXs = X.transpose() * X;
-	std::chrono::steady_clock::time_point tp2 = std::chrono::steady_clock::now();
+	VectorXd XXs_diag(XXs.rows());
+	for (int i = 0; i < XXs.rows(); i++) {
+		XXs_diag(i) = XXs(i, i);
+		XXs(i, i) = 0;
+	}
 	double cost = -1;
 	for (int step = 0; step < 500; step++) {
+		std::chrono::steady_clock::time_point tp1 = std::chrono::steady_clock::now();
+		VectorXd Ss = Ys;
+		Ss.noalias() += XXs * Beta;
+#pragma omp parallel for
 		for (int i = 0; i < eye_exp_size; i++) {
-			double Si = -1 * Ys(0, i);
-//#pragma omp parallel for
-			for (int j = 0; j < eye_exp_size; j++) {
-				if (i == j)
-					continue;
-				Si += XXs(i,j) * Beta(j);
-			}
-			if (Si > lambda2) {
-				Beta_result(i) = (lambda2 - Si) / XXs(i, i);
-			}
-			else if (Si < -1 * lambda2) {
-				Beta_result(i) = (-1 * lambda2 - Si) / XXs(i, i);
+			double Si = Ss(i);
+			if (Si < -1 * lambda2) {
+				Beta_result(i) = (-1 * lambda2 - Si) / XXs_diag(i);
 			}
 			else {
 				Beta_result(i) = 0;
 			}
-			Beta_result(i) = std::min(1.0, std::max(0.0, Beta_result(i)));
+			Beta_result(i) = std::min(1.0, Beta_result(i));
 		}
 		//
 		//if ((Beta_result - Beta).norm() < 0.1)
@@ -703,6 +696,7 @@ void EyeTrack()
 		//	Beta = Beta_result;
 		//}
 		//
+		std::chrono::steady_clock::time_point tp2 = std::chrono::steady_clock::now();
 		MatrixXd res = X * Beta_result - Y;
 		double cost1 = res.topRows(2 * eye_landmark_size).squaredNorm();
 		double cost2 = res.bottomRows(eye_exp_size).squaredNorm();
@@ -718,18 +712,17 @@ void EyeTrack()
 		else {
 			break;
 		}
+		std::chrono::steady_clock::time_point tp3 = std::chrono::steady_clock::now();
+		solve_time1_ += std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count();
+		solve_time2_ += std::chrono::duration_cast<std::chrono::milliseconds>(tp3 - tp2).count();
 	}
 	//
 	x_coeff_eg_.topRows(eye_exp_size) = Beta;
-	std::chrono::steady_clock::time_point tp3 = std::chrono::steady_clock::now();
-	solve_time1_ += std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count();
-	solve_time2_ += std::chrono::duration_cast<std::chrono::milliseconds>(tp3 - tp2).count();
 }
 
 void MouthTrack()
 {
-	std::chrono::steady_clock::time_point tp1 = std::chrono::steady_clock::now();
-	const static double lambda1 = 400.0;
+	const static double lambda1 = 250.0;
 	const static double lambda2 = 500.0;
 	// X
 	MatrixXd X(2 * mouth_landmark_size + mouth_exp_size, mouth_exp_size);
@@ -749,29 +742,28 @@ void MouthTrack()
 	VectorXd Beta, Beta_result;
 	Beta = Beta_result = x_coeff_eg_.bottomRows(mouth_exp_size);
 
-	MatrixXd Ys = Y.transpose() * X;
+	MatrixXd Ys = -1 * X.transpose() * Y;
 	MatrixXd XXs = X.transpose() * X;
-	std::chrono::steady_clock::time_point tp2 = std::chrono::steady_clock::now();
+	VectorXd XXs_diag(XXs.rows());
+	for (int i = 0; i < XXs.rows(); i++) {
+		XXs_diag(i) = XXs(i, i);
+		XXs(i, i) = 0;
+	}
 	double cost = -1;
 	for (int step = 0; step < 500; step++) {
+		std::chrono::steady_clock::time_point tp1 = std::chrono::steady_clock::now();
+		VectorXd Ss = Ys;
+		Ss.noalias() += XXs * Beta;
+#pragma omp parallel for
 		for (int i = 0; i < eye_exp_size; i++) {
-			double Si = -1 * Ys(0, i);
-//#pragma omp parallel for
-			for (int j = 0; j < eye_exp_size; j++) {
-				if (i == j)
-					continue;
-				Si += XXs(i, j) * Beta(j);
-			}
-			if (Si > lambda2) {
-				Beta_result(i) = (lambda2 - Si) / XXs(i, i);
-			}
-			else if (Si < -1 * lambda2) {
-				Beta_result(i) = (-1 * lambda2 - Si) / XXs(i, i);
+			double Si = Ss(i);
+			if (Si < -1 * lambda2) {
+				Beta_result(i) = (-1 * lambda2 - Si) / XXs_diag(i);
 			}
 			else {
 				Beta_result(i) = 0;
 			}
-			Beta_result(i) = std::min(1.0, std::max(0.0, Beta_result(i)));
+			Beta_result(i) = std::min(1.0, Beta_result(i));
 		}
 		//
 		//if ((Beta_result - Beta).norm() < 0.1)
@@ -780,6 +772,7 @@ void MouthTrack()
 		//	Beta = Beta_result;
 		//}
 		//
+		std::chrono::steady_clock::time_point tp2 = std::chrono::steady_clock::now();
 		MatrixXd res = X * Beta_result - Y;
 		double cost1 = res.topRows(2 * eye_landmark_size).squaredNorm();
 		double cost2 = res.bottomRows(eye_exp_size).squaredNorm();
@@ -788,17 +781,17 @@ void MouthTrack()
 			cost1,
 			cost2,
 			new_cost);
-		if ((cost - new_cost) > 1 || cost < 0) {
+		if ((cost - new_cost) > 0.1 || cost < 0) {
 			cost = new_cost;
 			Beta = Beta_result;
 		}
 		else {
 			break;
 		}
+		std::chrono::steady_clock::time_point tp3 = std::chrono::steady_clock::now();
+		solve_time1_ += std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count();
+		solve_time2_ += std::chrono::duration_cast<std::chrono::milliseconds>(tp3 - tp2).count();
 	}
 	//
 	x_coeff_eg_.bottomRows(mouth_exp_size) = Beta;
-	std::chrono::steady_clock::time_point tp3 = std::chrono::steady_clock::now();
-	solve_time1_ += std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count();
-	solve_time2_ += std::chrono::duration_cast<std::chrono::milliseconds>(tp3 - tp2).count();
 }

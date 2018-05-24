@@ -71,7 +71,6 @@ public:
 
 	DepthCameraIntrinsic depth_camera;
 	RgbCameraIntrinsic rgb_camera;
-	static Matrix<double, 3, 1> camera_extrinsic_translation;
 
 	MatrixXd neutral_eg_block;
 	MatrixXd delta_B_eg_block;

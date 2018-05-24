@@ -1,18 +1,22 @@
 #include "parameters.h"
 using namespace std;
 
-#define LAPTOP 0
+#define USE_LAPTOP 0
 
-#if LAPTOP
-string Desktop_Path		= "C:/Users/zhx/Desktop/";
-string Test_Output_Dir	= "C:/Users/zhx/Desktop/result/";
-string Data_Input_Dir	= "C:\\Work\\data\\pca_obj_simplified3/";
-string Kinect_Data_Dir	= "C:/Users/zhx/Desktop/test11/";
+#if USE_LAPTOP
+	string Desktop_Path		= "C:/Users/zhx/Desktop/";
+	string Test_Output_Dir	= "C:/Users/zhx/Desktop/result/";
+	string Data_Input_Dir	= "C:\\Work\\data\\pca_obj_simplified3/";
+	string Kinect_Data_Dir	= "C:/Users/zhx/Desktop/test11/";
 #else
-string Desktop_Path		= "C:/Users/zhx/Desktop/";
-string Test_Output_Dir	= "C:/Users/zhx/Desktop/result/";
-string Data_Input_Dir	= "F:/FaceAnimation/pca_obj_simplified3/";
-string Kinect_Data_Dir	= "F:/Kinect2/new1/";
+	string Desktop_Path		= "C:/Users/zhx/Desktop/";
+	string Test_Output_Dir	= "C:/Users/zhx/Desktop/result/";
+	string Data_Input_Dir	= "F:/FaceAnimation/pca_obj_simplified3/";
+	#if USE_KINECT
+		string Kinect_Data_Dir	= "F:/Kinect2/new1/";
+	#else
+		string Kinect_Data_Dir = "F:/SunnuMars/zhx1/";
+	#endif
 #endif
 
 vector<int> face_landmark =
@@ -50,4 +54,4 @@ std::vector<int> mouth_expression =
 	1,9,10,11,12,13,14,15,16,17,18,20,21,23,24,26,28,30,32
 };
 
-
+Eigen::Vector3d CameraExtrinsic((Eigen::Vector3d() << 52.0, 0.0, 0.0).finished());

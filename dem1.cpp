@@ -13,7 +13,7 @@ bool SVD()
 		for (int i = 0; i < dframe_.cols; i++) {
 			double d = dframe_.at<unsigned short>(j, i);
 			Vector3d p3 = ReprojectionDepth(Vector2d(i, j), d);
-			p3 += camera_extrinsic_translation_;
+			p3 -= CameraExtrinsic;
 			Vector3d p2 = ProjectionRgb(p3);
 			for (int k = landmark_begin; k < landmark_end; k++) {
 				double px = std::abs(p2.x() - landmark_detector_.pts_[k].x());
