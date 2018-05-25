@@ -109,12 +109,13 @@ void DEM()
 		y_weights_eg_(i) = 1.0 / P_eg_.col(i).norm();
 	}
 	//
-	ml::MeshIOd::loadFromOBJ(Data_Input_Dir + "landmark.obj", mesh_);
+	ml::MeshIOd::loadFromOBJ(Data_Input_Dir + "pca/0.obj", mesh_);
 	mesh_.m_Colors.resize(0);
 	mesh_.m_Colors.resize(mesh_.m_Vertices.size(), ml::vec4d(0.5, 0.5, 0.5, 1.0));
 	for (int i = 0; i < face_landmark.size(); i++) {
 		mesh_.m_Colors[face_landmark[i]] = ml::vec4d(1.0, 0.0, 0.0, 1.0);
 	}
+	//ml::MeshIOd::saveToOBJ(Desktop_Path + "landmark.obj", mesh_);
 	//
 	neutral_eg_.resize(3 * vertex_size, 1);
 	expression_eg_.resize(3 * vertex_size, 1);
@@ -202,7 +203,7 @@ void Initialize()
 				dframe_,
 				M_eg_, P_eg_,
 				normal_eg_,
-				0.05,
+				0.075,
 				true),
 			loss_function_wrapper1,
 			motion_param[motion_param_ptr], motion_param[motion_param_ptr] + 3, y_coeff_eg_.data()

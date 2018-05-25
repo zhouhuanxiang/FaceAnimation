@@ -57,10 +57,10 @@ public:
 
 			MatrixXd b1_i, b2_i;
 			char str[20];
-			sprintf(str, "expression/m%d", index);
+			sprintf(str, "e/m%d", index);
 			read_binary(Data_Input_Dir + str, b1_i);
 			b1_i = b1_i - pca.col(0);
-			sprintf(str, "expression/Py%d", index);
+			sprintf(str, "e/Py%d", index);
 			read_binary(Data_Input_Dir + str, b2_i);
 			b2_i = b2_i - pca.block(0, 1, 3 * vertex_size, pca_size);
 

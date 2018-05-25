@@ -83,8 +83,8 @@ bool CeresFaceDenseError::operator()(const T* const R, const T* const tr, const 
 		residuals[1] = n(0) * (p4[0] - p1[0]) + n(1) * (p4[1] - p1[1]) + n(2) * (p4[2] - p1[2]);
 	//}
 
-		residuals[0] = weight * residuals[0];
-		residuals[1] = 3 * weight * residuals[1];
+		residuals[0] = 1 * weight * residuals[0];
+		residuals[1] = 2 * weight * residuals[1];
 
 	return true;
 }
@@ -135,8 +135,8 @@ bool CeresLandmarkError::operator()(const T* const R, const T* const tr, const T
 		p1[i] = p2[i] + tr[i];
 	}
 	T p3[3];
-	double alpha1 = 0.2;
-	double alpha2 = 1;
+	double alpha1 = 0.20;
+	double alpha2 = 1.25;
 
 	p3[0] = -1.0 * p1[0] / p1[2] * rgb_camera.fx + rgb_camera.cx;
 	p3[1] = -1.0 * p1[1] / p1[2] * rgb_camera.fy + rgb_camera.cy;
@@ -207,7 +207,7 @@ template <class T>
 bool CeresInitializationRegulation::operator()(const T* const pca_coeff, T* residuals) const
 {
 	for (int i = 0; i < pca_size; i++){
-		residuals[i] = ((T)pca_coeff[i]) * pca_weights(i) * 75.0;
+		residuals[i] = ((T)pca_coeff[i]) * pca_weights(i) * 60.0;
 		////std::cout << residuals[i] << "\n";
 	}
 	////std::cout << "\n";

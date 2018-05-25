@@ -43,8 +43,7 @@ extern Eigen::Vector3d CameraExtrinsic;
 
 const int frame_count_end = 400;
 
-const int vertex_size = 3641;
-const int face_size = 7028;
+const int vertex_size = 3223;
 const int pca_size = 50;
 const int exp_size = 33 - 6;
 const int eye_exp_size = 8;

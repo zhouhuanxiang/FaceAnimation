@@ -6,12 +6,12 @@ using namespace std;
 #if USE_LAPTOP
 	string Desktop_Path		= "C:/Users/zhx/Desktop/";
 	string Test_Output_Dir	= "C:/Users/zhx/Desktop/result/";
-	string Data_Input_Dir	= "C:\\Work\\data\\pca_obj_simplified3/";
+	string Data_Input_Dir	= "C:/Work/data/pca_obj_simplified4/";
 	string Kinect_Data_Dir	= "C:/Users/zhx/Desktop/test11/";
 #else
 	string Desktop_Path		= "C:/Users/zhx/Desktop/";
 	string Test_Output_Dir	= "C:/Users/zhx/Desktop/result/";
-	string Data_Input_Dir	= "F:/FaceAnimation/pca_obj_simplified3/";
+	string Data_Input_Dir	= "F:/FaceAnimation/pca_obj_simplified4/";
 	#if USE_KINECT
 		string Kinect_Data_Dir	= "F:/Kinect2/new1/";
 	#else
@@ -26,17 +26,29 @@ vector<int> face_landmark =
 	0,0,0,0,0,
 	0,0,
 
-	1804,1125,1401,
-	168,167,611,612,2491,
-	2500,3090,2072,101,88,
-	78,259,1241,1316,2611,
-	703,1794,999,1007,1041,
-	1045,59,2413,2387,2373,
-	546,537,2417,1497,1937,
-	1485,1518,2851,3275,2858,
-	921,3513,97,2172,477,
-	985,945,1,493,2357,
-	492,0,933
+	//1804,1125,1401,
+	//168,167,611,612,2491,
+	//2500,3090,2072,101,88,
+	//78,259,1241,1316,2611,
+	//703,1794,999,1007,1041,
+	//1045,59,2413,2387,2373,
+	//546,537,2417,1497,1937,
+	//1485,1518,2851,3275,2858,
+	//921,3513,97,2172,477,
+	//985,945,1,493,2357,
+	//492,0,933
+
+	1568,936,1180,
+	927,930,2156,2152,2153,
+	2162,2706,1832,65,53,
+	43,223,1052,996,2273,
+	609,873,827,833,859,
+	862,840,448,2063,2053,
+	2097,443,2086,1297,1697,
+	1258,1291,2475,2886,2510,
+	803,3106,61,1913,417,
+	1313,811,1,432,2525,
+	431,0,808
 };
 
 std::vector<int> useless_expression =
@@ -57,5 +69,5 @@ std::vector<int> mouth_expression =
 #if USE_KINECT
 Eigen::Vector3d CameraExtrinsic((Eigen::Vector3d() << 52.0, 0.0, 0.0).finished());
 #else
-Eigen::Vector3d CameraExtrinsic((Eigen::Vector3d() << -10.429403, -0.032413036, 2.6441102).finished());
+Eigen::Vector3d CameraExtrinsic((Eigen::Vector3d() << 10.429403, 0.032413036, -2.6441102).finished());
 #endif

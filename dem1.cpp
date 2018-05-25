@@ -159,7 +159,7 @@ void UpdateMotion(cv::Mat &dframe, std::vector<Eigen::Vector2d> pts,
 	//	////LOG(INFO) << setw(15) << residuals[0] << " " << setw(15) << residuals[1] << "\n";
 	//}
 
-	//Ceres2Eigen(rotation_eg_, translation_eg_, motion_param[motion_param_ptr]);
+	Ceres2Eigen(rotation_eg_, translation_eg_, motion_param[motion_param_ptr]);
 	////LOG(INFO) << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3);
 	////std::cout << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3) << "@\n";
 }
