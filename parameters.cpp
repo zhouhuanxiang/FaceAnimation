@@ -15,7 +15,7 @@ using namespace std;
 	#if USE_KINECT
 		string Kinect_Data_Dir	= "F:/Kinect2/new1/";
 	#else
-		string Kinect_Data_Dir = "F:/SunnuMars/zhx1/";
+		string Kinect_Data_Dir = "F:/SunnuMars/zhx2/";
 	#endif
 #endif
 
@@ -54,4 +54,8 @@ std::vector<int> mouth_expression =
 	1,9,10,11,12,13,14,15,16,17,18,20,21,23,24,26,28,30,32
 };
 
+#if USE_KINECT
 Eigen::Vector3d CameraExtrinsic((Eigen::Vector3d() << 52.0, 0.0, 0.0).finished());
+#else
+Eigen::Vector3d CameraExtrinsic((Eigen::Vector3d() << -10.429403, -0.032413036, 2.6441102).finished());
+#endif

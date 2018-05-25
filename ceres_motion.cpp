@@ -148,8 +148,13 @@ bool CeresMotionLandmarkError::operator()(const T* const R, const T* const tr, T
 	ws[3] = wx * wy;
 	T d = T(0);
 	for (int i = 0; i < 4; i++) {
+#if USE_KINECT
 		d += (double)frame.at<unsigned short>(ys[i], xs[i]) * ws[i];
 		////std::cout << frame.at<unsigned short>(ys[i], xs[i]) << " ";
+#else
+		cv::Vec3f tmp = frame.at<cv::Vec3f>(ys[i], xs[i]) * 1e3f;
+		d += (double)tmp[2] * ws[i];
+#endif
 	}
 	////std::cout << "\n";
 	residuals[0] = alpha1 * (p3[2] - d);

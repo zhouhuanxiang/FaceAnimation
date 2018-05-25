@@ -1,7 +1,7 @@
 #ifndef PARAMETERS_
 #define PARAMETERS_
 
-#define USE_KINECT 1
+#define USE_KINECT 0
 
 #include <set>
 #include <vector>
@@ -11,28 +11,37 @@ using namespace std;
 
 struct DepthCameraIntrinsic
 {
+#if USE_KINECT
 	double fx = 365.427002;
 	double fy = 365.427002;
 	double cx = 255.713501;
 	double cy = 208.248596;
+#else
+	double fx = 213.3383;
+	double fy = 213.51022;
+	double cx = 110.35899;
+	double cy = 84.370438;
+#endif
 };
 
 struct RgbCameraIntrinsic
 {
-	//double fx = 365.427002;
-	//double fy = 365.427002;
-	//double cx = 255.713501;
-	//double cy = 208.248596;
-
+#if USE_KINECT
 	double fx = 1081.37;
 	double fy = 1081.37;
 	double cx = 959.5;
 	double cy = 539.5;
+#else
+	double fx = 892.20422;
+	double fy = 893.18079;
+	double cx = 666.89142;
+	double cy = 382.2774;
+#endif
 };
 
 extern Eigen::Vector3d CameraExtrinsic;
 
-const int frame_count_end = 380;
+const int frame_count_end = 400;
 
 const int vertex_size = 3641;
 const int face_size = 7028;

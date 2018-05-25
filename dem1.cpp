@@ -168,8 +168,7 @@ bool UpdateFrame(bool force_motion)
 {
 	static ImageReaderKinect image_reader(Kinect_Data_Dir);
 	image_reader.GetFrame(frame_count_, cframe_, dframe_);
-	////LOG(INFO) << "gauss blur";
-	//cv::GaussianBlur(dframe_, dframe_, cv::Size(3, 3), 0);
+	//return true;
 	landmark_detector_.Detect(cframe_, frame_count_, false);
 	//return true;
 

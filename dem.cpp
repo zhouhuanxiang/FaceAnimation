@@ -430,34 +430,25 @@ void WritePointCloud()
 {
 	ml::MeshDatad tmp;
 
-	landmark_detector_.xmax = dframe_.cols;
-	landmark_detector_.ymax = dframe_.rows;
-	landmark_detector_.xmin = 0;
-	landmark_detector_.ymin = 0;
-
-	int width = landmark_detector_.xmax - landmark_detector_.xmin;
-	int height = landmark_detector_.ymax - landmark_detector_.ymin;
-	tmp.m_Vertices.resize(width * height, ml::vec3d(0, 0, 1000));
-	tmp.m_Colors.resize(width * height);
-	for (int i = landmark_detector_.ymin; i < landmark_detector_.ymax; i++) {
+	tmp.m_Vertices.resize(dframe_.rows * dframe_.cols, ml::vec3d(0, 0, 1000));
+	for (int i = 0; i < dframe_.rows; i++) {
 #pragma omp parallel for
-		for (int j = landmark_detector_.xmin; j < landmark_detector_.xmax; j++) {
+		for (int j = 0; j < dframe_.cols; j++) {
+#if USE_KINECT
 			int depth = dframe_.at<unsigned short>(i, j);
 			if (depth > 2000)
 				continue;
 			Vector3d p3 = ReprojectionDepth(Vector2d(j, i), depth);
-			tmp.m_Vertices[(i - landmark_detector_.ymin) * width + j - landmark_detector_.xmin] = ml::vec3d(p3.data());
+			tmp.m_Vertices[i * dframe_.cols + j] = ml::vec3d(p3.data());
+#else
+			cv::Vec3f p3 = dframe_.at<cv::Vec3f>(i, j) * 1e3f;
+			tmp.m_Vertices[i * dframe_.cols + j] = ml::vec3d(p3[0], p3[1], p3[2]);
+#endif
 		}
 	}
-	//for (int f = 17; f < face_landmark_size; f++) {
-	//	Vector2d& p2 = landmark_detector_.pts_[f];
-	//	tmp.m_Colors[(p2.y() - landmark_detector_.ymin) * width + p2.x() - landmark_detector_.xmin] = ml::vec4d((f + 130.0) / 200, 0, 0, 1);
-	//}
 	char str[20];
 	sprintf(str, "%d/pcl.obj", frame_count_);
 	ml::MeshIOd::saveToOBJ(Test_Output_Dir + str, tmp);
-	//std::thread t(ml::MeshIOd::saveToOBJ, Test_Output_Dir + str, tmp);
-	//t.detach();
 }
 
 Vector3d ReprojectionDepth(Vector2d p2, int depth)

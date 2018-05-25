@@ -62,9 +62,9 @@ int main(int argc, char** argv)
 	//	UpdateFrame();
 	//}
 
-	//for (frame_count_ = 80; frame_count_ < 500; frame_count_++) {
-	//	//std::cout << frame_count_ << "\n";
-	//	UpdateFrame();
+	//for (frame_count_ = 25; frame_count_ < frame_count_end; frame_count_++) {
+	//	std::cout << frame_count_ << "\n";
+	//	UpdateFrame(true);
 	//	WritePointCloud();
 	//}
 	//return 0;
