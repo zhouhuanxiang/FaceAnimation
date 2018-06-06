@@ -30,7 +30,14 @@ public:
 		deserialize("shape_predictor_68_face_landmarks.dat") >> shape_predictor_;
 		pts_.resize(shape_predictor_.num_parts());
 
-		detector_ = get_frontal_face_detector();
+		face_detector_ = get_frontal_face_detector();
+
+		face_thread_ = std::thread(&DlibLandmarkDetector::FaceDetect, this);
+	}
+
+	~DlibLandmarkDetector()
+	{
+		face_thread_.join();
 	}
 
 	bool test(cv::Mat& cframe)
@@ -44,7 +51,7 @@ public:
 		cv_image<bgr_pixel> cimg(cframe_bgr_);
 
 		rectangle face_local;
-		face_local = detector_(cimg)[0];
+		face_local = face_detector_(cimg)[0];
 
 		full_object_detection shape = shape_predictor_(cimg, face_local);
 
@@ -65,6 +72,36 @@ public:
 		cv::waitKey(0);
 	}
 
+	void FaceDetect()
+	{
+		while (true) {
+			// update count (with mtx)
+			if (fcount_ == lcount_) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				continue;
+			}
+
+			// read cframe to local (with mtx)
+			cv::Mat cframe_bgr_local;
+			ReadFrame(cframe_bgr_local);
+			int lcount = lcount_;
+			// Change to dlib's image format. No memory is copied.
+			cv_image<bgr_pixel> cimg(cframe_bgr_local);
+
+			LOG(WARNING) << "face detect No." << lcount_ << " " << lcount_ - fcount_;
+
+			std::vector<rectangle> faces = face_detector_(cimg);
+			if (faces.size() == 1) {
+				// update face (with mtx)
+				UpdateFace(faces[0]);
+				fcount_ = lcount;
+			}
+			else {
+				//std::cout << "totally " << faces.size() << " faces detected!\n";
+			}
+		}
+	}
+
 	bool Detect(cv::Mat &cframe, int frame_count, bool debug = false)
 	{
 		lcount_ = frame_count;
@@ -83,7 +120,7 @@ public:
 		rectangle face_local;
 		ReadFace(face_local);
 		//
-		//face_local = detector_(cimg)[0];
+		//face_local = face_detector_(cimg)[0];
 		//
 
 		cv::Mat cframe_bgr_face = cframe_bgr_(cv::Rect(face_local.left(), face_local.top(), face_local.width(), face_local.height()));
@@ -172,7 +209,8 @@ private:
 	std::mutex face_mtx_;
 	std::mutex cframe_bgr_mtx_;
 
-	frontal_face_detector detector_;
+	std::thread face_thread_;
+	frontal_face_detector face_detector_;
 };
 
 #endif

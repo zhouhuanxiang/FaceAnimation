@@ -126,9 +126,9 @@ void DEM()
 	C_track_eg_.resize(total_residual_size, 1);
 
 	//
-	DlibFaceDetector fd(landmark_detector_);
-	std::thread t(fd);
-	t.detach();
+	//DlibFaceDetector fd(landmark_detector_);
+	//std::thread t(fd);
+	//t.detach();
 	//
 	UpdateNeutralFaceCPU();
 	UpdateDeltaBlendshapeCPU();
