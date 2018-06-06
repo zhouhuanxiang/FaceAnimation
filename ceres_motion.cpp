@@ -197,3 +197,30 @@ ceres::CostFunction* CeresMotionFitError::Create(double x_value, double y_value)
 	return (new ceres::AutoDiffCostFunction<CeresMotionFitError, 1, FIT_DIM>(
 		new CeresMotionFitError(x_value, y_value)));
 }
+
+
+////////////////////////////////////////////////////////
+CeresMotionSmoothError::CeresMotionSmoothError(double* p_param, double* pp_param)
+	:p_param(p_param), pp_param(pp_param)
+{
+}
+
+template <class T>
+bool CeresMotionSmoothError::operator()(const T* const R, const T* const tr, T* residuals) const
+{
+	T w1 = (T)0.5;
+	T w2 = (T)0.1;
+	for (int i = 0; i < 3; i++) {
+		residuals[i] = w1 * (pp_param[i] + R[i] - 2 * p_param[i]);
+	}
+	for (int i = 3; i < 6; i++) {
+		residuals[i] = w2 * (pp_param[i] + tr[i - 3] - 2 * p_param[i]);
+	}
+	return true;
+}
+
+ceres::CostFunction* CeresMotionSmoothError::Create(double* p_param, double* pp_param)
+{
+	return (new ceres::AutoDiffCostFunction<CeresMotionSmoothError, 6, 3, 3>(
+		new CeresMotionSmoothError(p_param, pp_param)));
+}

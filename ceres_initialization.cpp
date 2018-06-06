@@ -135,8 +135,8 @@ bool CeresLandmarkError::operator()(const T* const R, const T* const tr, const T
 		p1[i] = p2[i] + tr[i];
 	}
 	T p3[3];
-	double alpha1 = 0.20;
-	double alpha2 = 1.25;
+	double alpha1 = 0.50;
+	double alpha2 = 0.50;
 
 	p3[0] = -1.0 * p1[0] / p1[2] * rgb_camera.fx + rgb_camera.cx;
 	p3[1] = -1.0 * p1[1] / p1[2] * rgb_camera.fy + rgb_camera.cy;
@@ -207,7 +207,7 @@ template <class T>
 bool CeresInitializationRegulation::operator()(const T* const pca_coeff, T* residuals) const
 {
 	for (int i = 0; i < pca_size; i++){
-		residuals[i] = ((T)pca_coeff[i]) * pca_weights(i) * 60.0;
+		residuals[i] = ((T)pca_coeff[i]) * pca_weights(i) * 50.0;
 		////std::cout << residuals[i] << "\n";
 	}
 	////std::cout << "\n";

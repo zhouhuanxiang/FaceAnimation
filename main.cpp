@@ -3,6 +3,7 @@
 #include <glog/logging.h>
 
 #include <chrono>
+#include <fstream>
 
 #include "dem.h"
 #include "dem1.h"
@@ -18,6 +19,15 @@ int main(int argc, char** argv)
 	google::SetLogDestination(google::GLOG_INFO, "C:/Users/zhx/Desktop/log/log");
 	google::SetLogDestination(google::GLOG_WARNING, "C:/Users/zhx/Desktop/log/warning");
 	google::InitGoogleLogging(argv[0]);
+
+	//std::ifstream ifs(Desktop_Path + "/data.txt");
+	//std::ofstream ofs1(Desktop_Path + "/data1.txt");
+	//for (int i = 1; i <= 100; i++) {
+	//	std::string s;
+	//	getline(ifs, s);
+	//	ofs1 << i << " " << s.back() - '1' + 1 << "\n";
+	//}
+	//return 0;
 
 	//for (int i = 0; i < 1000; i++) {
 	//	char str[200];
@@ -58,9 +68,12 @@ int main(int argc, char** argv)
 
 	DEM();
 
-	//for (frame_count_ = 25; frame_count_ < 370; frame_count_++) {
-	//	UpdateFrame();
+	//for (frame_count_ = 150; frame_count_ < 370; frame_count_++) {
+	//	std::cout << frame_count_ << "\n";
+	//	UpdateFrame(false);
+	//	WritePointCloud();
 	//}
+	//return 0;
 
 	//for (frame_count_ = 25; frame_count_ < frame_count_end; frame_count_++) {
 	//	std::cout << frame_count_ << "\n";
@@ -107,5 +120,15 @@ int main(int argc, char** argv)
 	std::cout << "  step3 :" << track_time3_ << "ms\n";
 	std::cout << "total   :" << std::chrono::duration_cast<std::chrono::milliseconds>(total_end - total_start).count() << "ms\n";
 	system("pause");
+
+	std::ofstream ofs("C:/Users/zhx/Desktop/1.txt");
+	for (int i = 0; i < face_path_.size(); i++) {
+		ofs << face_path_[i];
+		if (i % 3 == 2)
+			ofs << "\n";
+		else
+			ofs << " ";
+	}
+
 	return 0;
 }

@@ -30,6 +30,7 @@ extern long long track_time3_;
 extern long long solve_time1_;
 extern long long solve_time2_;
 extern long long solve_time3_;
+extern std::vector<double> face_path_;
 
 extern MatrixXd M_eg_;
 extern MatrixXd P_eg_;

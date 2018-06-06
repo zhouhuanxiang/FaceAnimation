@@ -41,6 +41,7 @@ struct RgbCameraIntrinsic
 
 extern Eigen::Vector3d CameraExtrinsic;
 
+const int frame_count_begin = 25;
 const int frame_count_end = 400;
 
 const int vertex_size = 3223;

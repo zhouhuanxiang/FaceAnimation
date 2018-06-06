@@ -9,6 +9,7 @@ long long track_time3_;
 long long solve_time1_;
 long long solve_time2_;
 long long solve_time3_;
+std::vector<double> face_path_;
 
 MatrixXd M_eg_;
 MatrixXd P_eg_;
@@ -115,7 +116,7 @@ void DEM()
 	for (int i = 0; i < face_landmark.size(); i++) {
 		mesh_.m_Colors[face_landmark[i]] = ml::vec4d(1.0, 0.0, 0.0, 1.0);
 	}
-	//ml::MeshIOd::saveToOBJ(Desktop_Path + "landmark.obj", mesh_);
+	ml::MeshIOd::saveToOBJ(Desktop_Path + "landmark.obj", mesh_);
 	//
 	neutral_eg_.resize(3 * vertex_size, 1);
 	expression_eg_.resize(3 * vertex_size, 1);
@@ -416,8 +417,8 @@ void WriteExpressionFace(int count, MatrixXd tmesh, Vector3d translation_eg, Mat
 
 	//LOG(INFO) << "write expression face";
 	Map<MatrixXd> tmap(tmesh.data(), 3, vertex_size);
-	tmap = rotation_eg * tmap;
-	tmap.colwise() += translation_eg;
+	//tmap = rotation_eg * tmap;
+	//tmap.colwise() += translation_eg;
 	ml::MeshDatad mesh;
 	mesh.m_Vertices.resize(vertex_size);
 	mesh.m_Colors = mesh_.m_Colors;
@@ -443,7 +444,9 @@ void WritePointCloud()
 			tmp.m_Vertices[i * dframe_.cols + j] = ml::vec3d(p3.data());
 #else
 			cv::Vec3f p3 = dframe_.at<cv::Vec3f>(i, j) * 1e3f;
-			tmp.m_Vertices[i * dframe_.cols + j] = ml::vec3d(p3[0], p3[1], p3[2]);
+			if (p3[2] > 1000)
+				continue;
+			tmp.m_Vertices[i * dframe_.cols + j] = ml::vec3d(-1 * p3[0], -1 * p3[1], p3[2]);
 #endif
 		}
 	}

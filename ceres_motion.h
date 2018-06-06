@@ -83,4 +83,19 @@ public:
 	double y_value;
 };
 
+class CeresMotionSmoothError {
+public:
+	CeresMotionSmoothError(double* p_param, double* pp_param);
+
+	template <class T>
+	bool operator()(const T* const R, const T* const tr, T* residuals) const;
+
+	static ceres::CostFunction* Create(double* p_param, double* pp_param);
+
+public:
+	double* p_param;
+	double* pp_param;
+};
+
+
 #endif

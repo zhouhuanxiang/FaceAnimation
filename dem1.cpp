@@ -111,6 +111,12 @@ void UpdateMotion(cv::Mat &dframe, std::vector<Eigen::Vector2d> pts,
 			motion_param_tmp, motion_param_tmp + 3
 		);
 	}
+	problem1.AddResidualBlock(
+		CeresMotionSmoothError::Create(motion_param[motion_param_ptr],
+			motion_param[(motion_param_ptr - 1 + motion_param_size) % motion_param_size]),
+		0,
+		motion_param_tmp, motion_param_tmp + 3
+	);
 
 	ceres::Solver::Summary summary1;
 	ceres::Solve(options1, &problem1, &summary1);
@@ -161,7 +167,7 @@ void UpdateMotion(cv::Mat &dframe, std::vector<Eigen::Vector2d> pts,
 
 	Ceres2Eigen(rotation_eg_, translation_eg_, motion_param[motion_param_ptr]);
 	////LOG(INFO) << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3);
-	////std::cout << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3) << "@\n";
+	std::cout << "translation: " << Map<RowVectorXd>(translation_eg_.data(), 3) << "@\n";
 }
 
 bool UpdateFrame(bool force_motion)
@@ -214,6 +220,9 @@ bool UpdateFrame(bool force_motion)
 		for (int i = 0; i < 6; i++) {
 			motion_param[motion_param_ptr][i] = motion_param_tmp[i];
 		}
+		face_path_.push_back(motion_param_tmp[3]);
+		face_path_.push_back(motion_param_tmp[4]);
+		face_path_.push_back(motion_param_tmp[5]);
 		//SVD();
 	}
 

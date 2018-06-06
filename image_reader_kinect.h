@@ -30,21 +30,25 @@ public:
 #endif
 #pragma omp parallel for
 		for (int i = 0; i < frame_count_end; i++) {
-			char str[20];
-			sprintf(str, "c%d.png", i);
-			cframes[i] = cv::imread(path + str/*, cv::IMREAD_UNCHANGED*/);
+			char str1[20];
+			sprintf(str1, "c%d.png", i);
+			cframes[i] = cv::imread(path + str1/*, cv::IMREAD_UNCHANGED*/);
 			//cv::imshow("infrared", cframes[i]);
 			//cv::waitKey(0);
 #if USE_KINECT
 			sprintf(str, "d%d.png", i);
 			dframes[i] = cv::imread(path + str, cv::IMREAD_UNCHANGED);
 #else
-			sprintf(str, "c%d.xml", i);
-			cv::FileStorage storage(path + str, cv::FileStorage::READ);
-			storage["dframe"] >> dframes[i];
+			char str2[20];
+			sprintf(str2, "c%d.xml", i);
+			cv::FileStorage storage(path + str2, cv::FileStorage::READ);
+			cv::Mat tmp;
+			storage["dframe"] >> tmp;
+			dframes[i] = tmp.clone();
 			//std::cout << dframes[i].rows << " " << dframes[i].cols << " ";
 			storage.release();
 #endif
+			//std::cout << str1 << " " << str2 << " " << i << "\n";
 		}
 	}
 
@@ -54,7 +58,7 @@ public:
 		cframe = cframes[idx];
 		dframe = dframes[idx];
 	}
-private:
+public:
 	string path;
 	std::vector<cv::Mat> dframes;
 	std::vector<cv::Mat> cframes;

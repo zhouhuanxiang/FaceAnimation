@@ -113,10 +113,13 @@ public:
 		if (debug) {
 			for (int i = 0; i < shape.num_parts(); i++) {
 				if (i < 17)	continue;
-				cv::circle(cframe_bgr_, cv::Point(pts_[i](0), pts_[i](1)), 2, cv::Scalar(0, 0, 255, 255), -1);
+				cv::circle(cframe_bgr_, cv::Point(pts_[i](0), pts_[i](1)), 4, cv::Scalar(0, 0, 255, 255), -1);
 			}
-			cv::imshow("debug", cframe_bgr_);
-			cv::waitKey(0);
+			//cv::imshow("debug", cframe_bgr_);
+			//cv::waitKey(0);
+			char str[200];
+			sprintf(str, "C:/Users/zhx/Desktop/demo/landmark/%d.png", frame_count);
+			cv::imwrite(str, cframe_bgr_);
 		}
 
 		return true;
