@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{840D2801-B546-4BF2-B1BC-E393FCC285D9}</ProjectGuid>
+    <ProjectGuid>{A300A149-0F20-48FD-B9C7-CF04A46D7BA5}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>FaceAnimation</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>

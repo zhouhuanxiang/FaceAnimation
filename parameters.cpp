@@ -1,13 +1,13 @@
 #include "parameters.h"
 using namespace std;
 
-#define USE_LAPTOP 0
+#define USE_LAPTOP 1
 
 #if USE_LAPTOP
 	string Desktop_Path		= "C:/Users/zhx/Desktop/";
 	string Test_Output_Dir	= "C:/Users/zhx/Desktop/result/";
 	string Data_Input_Dir	= "C:/Work/data/pca_obj_simplified4/";
-	string Kinect_Data_Dir	= "C:/Users/zhx/Desktop/test11/";
+	string Kinect_Data_Dir	= "C:/Work/data/zhx2/";
 #else
 	string Desktop_Path		= "C:/Users/zhx/Desktop/";
 	string Test_Output_Dir	= "C:/Users/zhx/Desktop/result/";

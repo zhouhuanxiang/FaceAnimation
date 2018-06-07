@@ -93,8 +93,8 @@ int main(int argc, char** argv)
 	std::chrono::steady_clock::time_point total_start = std::chrono::steady_clock::now();
 	long long t1, t2;
 	t1 = t2 = 0;
-	for (frame_count_ = base + 6; frame_count_ < frame_count_end;) {
-		//LOG(INFO) << "\n\nframe No." << frame_count_;
+	for (frame_count_ = base + 6; frame_count_ <= frame_count_end;) {
+		LOG(INFO) << "\n\nframe No." << frame_count_;
 		std::cout << "# " << frame_count_ << "\n";
 		std::chrono::steady_clock::time_point tp1 = std::chrono::steady_clock::now();
 		UpdateFrame(true);
@@ -119,16 +119,16 @@ int main(int argc, char** argv)
 	std::cout << "  step22:" << solve_time2_ << "ms\n";
 	std::cout << "  step3 :" << track_time3_ << "ms\n";
 	std::cout << "total   :" << std::chrono::duration_cast<std::chrono::milliseconds>(total_end - total_start).count() << "ms\n";
-	system("pause");
+	//system("pause");
 
-	std::ofstream ofs("C:/Users/zhx/Desktop/1.txt");
-	for (int i = 0; i < face_path_.size(); i++) {
-		ofs << face_path_[i];
-		if (i % 3 == 2)
-			ofs << "\n";
-		else
-			ofs << " ";
-	}
+	//std::ofstream ofs("C:/Users/zhx/Desktop/1.txt");
+	//for (int i = 0; i < face_path_.size(); i++) {
+	//	ofs << face_path_[i];
+	//	if (i % 3 == 2)
+	//		ofs << "\n";
+	//	else
+	//		ofs << " ";
+	//}
 
 	return 0;
 }

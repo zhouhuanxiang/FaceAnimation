@@ -22,14 +22,14 @@ public:
 	{
 		path = p;
 #if USE_KINECT
-		cframes.resize(frame_count_end, cv::Mat(1080, 1920, CV_8UC3));
-		dframes.resize(frame_count_end, cv::Mat(512, 424, CV_16UC1));
+		cframes.resize(frame_count_end + 1, cv::Mat(1080, 1920, CV_8UC3));
+		dframes.resize(frame_count_end + 1, cv::Mat(512, 424, CV_16UC1));
 #else
-		cframes.resize(frame_count_end, cv::Mat(760, 1344, CV_8UC3));
-		dframes.resize(frame_count_end, cv::Mat(172, 224, CV_32FC3));
+		cframes.resize(frame_count_end + 1, cv::Mat(760, 1344, CV_8UC3));
+		dframes.resize(frame_count_end + 1, cv::Mat(172, 224, CV_32FC3));
 #endif
 #pragma omp parallel for
-		for (int i = 0; i < frame_count_end; i++) {
+		for (int i = 0; i <= frame_count_end; i++) {
 			char str1[20];
 			sprintf(str1, "c%d.png", i);
 			cframes[i] = cv::imread(path + str1/*, cv::IMREAD_UNCHANGED*/);

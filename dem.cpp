@@ -548,7 +548,7 @@ void Track()
 	MouthTrack();
 	//EyeMouthTrack();
 	//
-	//LOG(INFO) << "X: " << Map<RowVectorXd>(x_coeff_eg_.data(), exp_size);
+	LOG(INFO) << "X: " << Map<RowVectorXd>(x_coeff_eg_.data(), exp_size);
 	// output
 	std::chrono::steady_clock::time_point tp3 = std::chrono::steady_clock::now();
 	UpdateExpressionFaceCPU();
@@ -641,8 +641,10 @@ void EyeMouthTrack()
 
 void EyeTrack()
 {
-	const static double lambda1 = 15.0;
-	const static double lambda2 = 25.0;
+	//const static double lambda1 = 15.0;
+	//const static double lambda2 = 25.0;
+	const static double lambda1 = 250.0;
+	const static double lambda2 = 500.0;
 	// X
 	MatrixXd X(2 * eye_landmark_size + eye_exp_size, eye_exp_size);
 	X.setZero();

@@ -119,28 +119,14 @@ public:
 		// read face to local (with mtx)
 		rectangle face_local;
 		ReadFace(face_local);
-		//
-		//face_local = face_detector_(cimg)[0];
-		//
-
 		cv::Mat cframe_bgr_face = cframe_bgr_(cv::Rect(face_local.left(), face_local.top(), face_local.width(), face_local.height()));
-
-		double alpha = 1;
-		//cv::Mat tmp;
-		//cv::pyrUp(cframe_bgr_face, tmp, cframe_bgr_face.size() * 2);
-		//cv::pyrUp(tmp, cframe_bgr_face, tmp.size() * 2);
-
-		rectangle face_local_new = rectangle(0, 0, face_local.width() * alpha, face_local.height() * alpha);
 		cv_image<bgr_pixel> cimg_new(cframe_bgr_face);
+		rectangle face_local_new = rectangle(0, 0, face_local.width(), face_local.height());
 		full_object_detection shape = shape_predictor_(cimg_new, face_local_new);
+		Eigen::Vector2d offset(face_local.left(), +face_local.top());
 		for (int i = 0; i < shape.num_parts(); i++) {
-			pts_[i] = Eigen::Vector2d(shape.part(i).x() / alpha + face_local.left(), shape.part(i).y() / alpha + face_local.top()) ;
+			pts_[i] = Eigen::Vector2d(shape.part(i).x(), shape.part(i).y()) + offset;
 		}
-
-		//full_object_detection shape = shape_predictor_(cimg, face_local);
-		//for (int i = 0; i < shape.num_parts(); i++) {
-		//	pts_[i] = Eigen::Vector2d(shape.part(i).x(), shape.part(i).y());
-		//}
 		xmin = face_local.left();
 		xmax = face_local.right();
 		ymin = face_local.top();
@@ -152,11 +138,11 @@ public:
 				if (i < 17)	continue;
 				cv::circle(cframe_bgr_, cv::Point(pts_[i](0), pts_[i](1)), 4, cv::Scalar(0, 0, 255, 255), -1);
 			}
-			//cv::imshow("debug", cframe_bgr_);
-			//cv::waitKey(0);
-			char str[200];
-			sprintf(str, "C:/Users/zhx/Desktop/demo/landmark/%d.png", frame_count);
-			cv::imwrite(str, cframe_bgr_);
+			cv::imshow("debug", cframe_bgr_);
+			cv::waitKey(0);
+			//char str[200];
+			//sprintf(str, "C:/Users/zhx/Desktop/demo/landmark/%d.png", frame_count);
+			//cv::imwrite(str, cframe_bgr_);
 		}
 
 		return true;
